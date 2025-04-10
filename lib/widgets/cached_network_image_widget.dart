@@ -1,22 +1,23 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../utils/image_cache_manager.dart';
+import 'loading_placeholder.dart';
 
 class CachedNetworkImageWidget extends StatefulWidget {
   final String imageUrl;
   final BoxFit fit;
-  final Widget Function(BuildContext, Object)? errorBuilder;
   final double? width;
   final double? height;
+  final Widget Function(BuildContext, Object)? errorBuilder;
   final bool shouldRelease;
 
   const CachedNetworkImageWidget({
     super.key,
     required this.imageUrl,
     this.fit = BoxFit.cover,
-    this.errorBuilder,
     this.width,
     this.height,
+    this.errorBuilder,
     this.shouldRelease = true,
   });
 
@@ -26,14 +27,11 @@ class CachedNetworkImageWidget extends StatefulWidget {
 
 class _CachedNetworkImageWidgetState extends State<CachedNetworkImageWidget> {
   Future<ui.Image>? _imageFuture;
-  int _retryCount = 0;
-  static const int _maxRetries = 3;
   String? _currentUrl;
 
   @override
   void initState() {
     super.initState();
-    _currentUrl = widget.imageUrl;
     _loadImage();
   }
 
@@ -44,22 +42,22 @@ class _CachedNetworkImageWidgetState extends State<CachedNetworkImageWidget> {
       if (_currentUrl != null && widget.shouldRelease) {
         ImageCacheManager.instance.releaseImage(_currentUrl!);
       }
-      _currentUrl = widget.imageUrl;
       _loadImage();
     }
+  }
+
+  @override
+  void dispose() {
+    if (_currentUrl != null && widget.shouldRelease) {
+      ImageCacheManager.instance.releaseImage(_currentUrl!);
+    }
+    super.dispose();
   }
 
   void _loadImage() {
-    if (_currentUrl == null) return;
-    _imageFuture = ImageCacheManager.instance.loadImage(_currentUrl!);
-  }
-
-  void _retryLoad() {
-    if (_retryCount < _maxRetries) {
-      _retryCount++;
-      _loadImage();
-      setState(() {});
-    }
+    if (_currentUrl == widget.imageUrl) return;
+    _currentUrl = widget.imageUrl;
+    _imageFuture = ImageCacheManager.instance.loadImage(widget.imageUrl);
   }
 
   @override
@@ -72,31 +70,18 @@ class _CachedNetworkImageWidgetState extends State<CachedNetworkImageWidget> {
           if (widget.errorBuilder != null) {
             return widget.errorBuilder!(context, snapshot.error!);
           }
-          return GestureDetector(
-            onTap: _retryLoad,
-            child: Container(
-              width: widget.width,
-              height: widget.height,
-              color: Colors.grey[800],
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.white54),
-                  const SizedBox(height: 8),
-                  Text(
-                    '加载失败，点击重试 (${_retryCount + 1}/$_maxRetries)',
-                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
+          return Image.asset(
+            'assets/backempty.png',
+            fit: widget.fit,
+            width: widget.width,
+            height: widget.height,
           );
         }
 
         if (snapshot.hasData) {
           return SizedBox(
-            width: widget.width ?? 300,
-            height: widget.height ?? 300 * 10 / 7,
+            width: widget.width,
+            height: widget.height,
             child: RawImage(
               image: snapshot.data,
               fit: widget.fit,
@@ -104,25 +89,11 @@ class _CachedNetworkImageWidgetState extends State<CachedNetworkImageWidget> {
           );
         }
 
-        return Center(
-          child: SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
-            ),
-          ),
+        return LoadingPlaceholder(
+          width: widget.width ?? 160,
+          height: widget.height ?? 228,
         );
       },
     );
-  }
-
-  @override
-  void dispose() {
-    if (_currentUrl != null && widget.shouldRelease) {
-      ImageCacheManager.instance.releaseImage(_currentUrl!);
-    }
-    super.dispose();
   }
 } 
