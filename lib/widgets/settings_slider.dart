@@ -1,163 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../utils/video_player_state.dart';
-import 'custom_slider.dart';
-import 'base_settings_menu.dart';
-import 'settings_hint_text.dart';
 import 'dart:ui';
-import 'settings_slider.dart';
 
-class DanmakuSettingsMenu extends StatefulWidget {
-  final VoidCallback onClose;
-  final VideoPlayerState videoState;
+class SettingsSlider extends StatefulWidget {
+  final double value;
+  final ValueChanged<double> onChanged;
+  final String label;
+  final String Function(double value) displayTextBuilder;
+  final double min;
+  final double max;
+  final double? step;
 
-  const DanmakuSettingsMenu({
+  const SettingsSlider({
     super.key,
-    required this.onClose,
-    required this.videoState,
+    required this.value,
+    required this.onChanged,
+    required this.label,
+    required this.displayTextBuilder,
+    this.min = 0.0,
+    this.max = 1.0,
+    this.step,
   });
 
   @override
-  State<DanmakuSettingsMenu> createState() => _DanmakuSettingsMenuState();
+  State<SettingsSlider> createState() => _SettingsSliderState();
 }
 
-class _DanmakuSettingsMenuState extends State<DanmakuSettingsMenu> {
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<VideoPlayerState>(
-      builder: (context, videoState, child) {
-        return BaseSettingsMenu(
-          title: '弹幕设置',
-          onClose: widget.onClose,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 弹幕开关
-              Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16, top: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          '显示弹幕',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Switch(
-                          value: videoState.danmakuVisible,
-                          onChanged: (value) {
-                            videoState.setDanmakuVisible(value);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SettingsHintText('开启后在视频上显示弹幕内容'),
-                  ],
-                ),
-              ),
-              // 弹幕堆叠开关
-              Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16, top: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          '弹幕堆叠',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Switch(
-                          value: videoState.danmakuStacking,
-                          onChanged: (value) {
-                            videoState.setDanmakuStacking(value);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SettingsHintText('允许多条弹幕重叠显示，适合弹幕密集场景'),
-                  ],
-                ),
-              ),
-              // 合并相同弹幕开关
-              Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16, top: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          '合并相同弹幕',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Switch(
-                          value: videoState.mergeDanmaku,
-                          onChanged: (value) {
-                            videoState.setMergeDanmaku(value);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SettingsHintText('将内容相同的弹幕合并为一条显示，减少屏幕干扰'),
-                  ],
-                ),
-              ),
-              // 弹幕透明度
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SettingsSlider(
-                      value: videoState.danmakuOpacity,
-                      onChanged: (v) => videoState.setDanmakuOpacity(v),
-                      label: '弹幕透明度',
-                      displayTextBuilder: (v) => '${(v * 100).toInt()}%',
-                      min: 0.0,
-                      max: 1.0,
-                    ),
-                    const SizedBox(height: 4),
-                    const SettingsHintText('拖动滑块调整弹幕透明度'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-// 新增弹幕透明度滑块组件
-class _DanmakuOpacitySlider extends StatefulWidget {
-  final VideoPlayerState videoState;
-  const _DanmakuOpacitySlider({required this.videoState});
-
-  @override
-  State<_DanmakuOpacitySlider> createState() => _DanmakuOpacitySliderState();
-}
-
-class _DanmakuOpacitySliderState extends State<_DanmakuOpacitySlider> {
+class _SettingsSliderState extends State<SettingsSlider> {
   final GlobalKey _sliderKey = GlobalKey();
   bool _isHovering = false;
   bool _isThumbHovered = false;
   bool _isDragging = false;
   OverlayEntry? _overlayEntry;
+
+  double get _progress => ((widget.value - widget.min) / (widget.max - widget.min)).clamp(0.0, 1.0);
+
+  double _getValueFromProgress(double progress) {
+    double value = widget.min + progress * (widget.max - widget.min);
+    if (widget.step != null && widget.step! > 0) {
+      value = ((value - widget.min) / widget.step!).round() * widget.step! + widget.min;
+    }
+    return value.clamp(widget.min, widget.max);
+  }
 
   @override
   void dispose() {
@@ -178,6 +61,7 @@ class _DanmakuOpacitySliderState extends State<_DanmakuOpacitySlider> {
     final size = sliderBox.size;
     final bubbleX = position.dx + (progress * size.width) - 20;
     final bubbleY = position.dy - 40;
+    final value = _getValueFromProgress(progress);
     _overlayEntry = OverlayEntry(
       builder: (context) => Material(
         type: MaterialType.transparency,
@@ -208,7 +92,7 @@ class _DanmakuOpacitySliderState extends State<_DanmakuOpacitySlider> {
                       ],
                     ),
                     child: Text(
-                      '${(widget.videoState.danmakuOpacity * 100).toInt()}%',
+                      widget.displayTextBuilder(value),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -226,12 +110,13 @@ class _DanmakuOpacitySliderState extends State<_DanmakuOpacitySlider> {
     Overlay.of(context).insert(_overlayEntry!);
   }
 
-  void _updateOpacityFromPosition(Offset localPosition) {
+  void _updateValueFromPosition(Offset localPosition) {
     final RenderBox? sliderBox = _sliderKey.currentContext?.findRenderObject() as RenderBox?;
     if (sliderBox != null) {
       final width = sliderBox.size.width;
       final progress = (localPosition.dx / width).clamp(0.0, 1.0);
-      widget.videoState.setDanmakuOpacity(progress);
+      final value = _getValueFromProgress(progress);
+      widget.onChanged(value);
     }
   }
 
@@ -240,9 +125,9 @@ class _DanmakuOpacitySliderState extends State<_DanmakuOpacitySlider> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '弹幕透明度',
-          style: TextStyle(
+        Text(
+          widget.label,
+          style: const TextStyle(
             color: Colors.white,
             fontSize: 14,
           ),
@@ -268,7 +153,7 @@ class _DanmakuOpacitySliderState extends State<_DanmakuOpacitySlider> {
               final width = sliderBox.size.width;
               final progress = (localPosition.dx / width).clamp(0.0, 1.0);
               final thumbRect = Rect.fromLTWH(
-                (widget.videoState.danmakuOpacity * width) - 8,
+                (_progress * width) - 8,
                 16,
                 16,
                 16
@@ -281,13 +166,13 @@ class _DanmakuOpacitySliderState extends State<_DanmakuOpacitySlider> {
           child: GestureDetector(
             onHorizontalDragStart: (details) {
               setState(() => _isDragging = true);
-              _updateOpacityFromPosition(details.localPosition);
-              _showOverlay(context, widget.videoState.danmakuOpacity);
+              _updateValueFromPosition(details.localPosition);
+              _showOverlay(context, _progress);
             },
             onHorizontalDragUpdate: (details) {
-              _updateOpacityFromPosition(details.localPosition);
+              _updateValueFromPosition(details.localPosition);
               if (_overlayEntry != null) {
-                _showOverlay(context, widget.videoState.danmakuOpacity);
+                _showOverlay(context, _progress);
               }
             },
             onHorizontalDragEnd: (details) {
@@ -296,8 +181,8 @@ class _DanmakuOpacitySliderState extends State<_DanmakuOpacitySlider> {
             },
             onTapDown: (details) {
               setState(() => _isDragging = true);
-              _updateOpacityFromPosition(details.localPosition);
-              _showOverlay(context, widget.videoState.danmakuOpacity);
+              _updateValueFromPosition(details.localPosition);
+              _showOverlay(context, _progress);
             },
             onTapUp: (details) {
               setState(() => _isDragging = false);
@@ -324,7 +209,7 @@ class _DanmakuOpacitySliderState extends State<_DanmakuOpacitySlider> {
                       right: 0,
                       top: 20,
                       child: FractionallySizedBox(
-                        widthFactor: widget.videoState.danmakuOpacity,
+                        widthFactor: _progress,
                         alignment: Alignment.centerLeft,
                         child: Container(
                           height: 4,
@@ -344,7 +229,7 @@ class _DanmakuOpacitySliderState extends State<_DanmakuOpacitySlider> {
                     ),
                     // 滑块
                     Positioned(
-                      left: (widget.videoState.danmakuOpacity * constraints.maxWidth) - (_isThumbHovered || _isDragging ? 8 : 6),
+                      left: (_progress * constraints.maxWidth) - (_isThumbHovered || _isDragging ? 8 : 6),
                       top: 22 - (_isThumbHovered || _isDragging ? 8 : 6),
                       child: MouseRegion(
                         cursor: SystemMouseCursors.click,
@@ -373,8 +258,6 @@ class _DanmakuOpacitySliderState extends State<_DanmakuOpacitySlider> {
             ),
           ),
         ),
-        const SizedBox(height: 4),
-        const SettingsHintText('拖动滑块调整弹幕透明度'),
       ],
     );
   }
