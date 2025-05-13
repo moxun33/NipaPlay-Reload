@@ -1,43 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/video_player_state.dart';
-import 'base_settings_menu.dart'; // Import the base menu
+import 'base_settings_menu.dart';
 import 'dart:async';
+import 'dart:io';
+import '../utils/subtitle_parser.dart';
 import '../utils/globals.dart' as globals;
 
-// Convert to StatefulWidget
-class DanmakuListMenu extends StatefulWidget {
+class SubtitleListMenu extends StatefulWidget {
   final VoidCallback onClose;
 
-  const DanmakuListMenu({
+  const SubtitleListMenu({
     super.key,
     required this.onClose,
   });
 
   @override
-  State<DanmakuListMenu> createState() => _DanmakuListMenuState();
+  State<SubtitleListMenu> createState() => _SubtitleListMenuState();
 }
 
-class _DanmakuListMenuState extends State<DanmakuListMenu> {
-  // 滚动控制器
+class _SubtitleListMenuState extends State<SubtitleListMenu> {
   final ScrollController _scrollController = ScrollController();
-  
-  // 弹幕数据
-  List<Map<String, dynamic>> _allSortedDanmakus = [];
-  List<Map<String, dynamic>> _visibleDanmakus = [];
-  
-  // 状态变量
+  List<SubtitleEntry> _allSubtitleEntries = []; // 所有字幕条目
+  List<SubtitleEntry> _visibleEntries = []; // 当前可见的字幕条目
   bool _isLoading = true;
   String _errorMessage = '';
   Timer? _refreshTimer;
-  int _currentDanmakuIndex = -1;
+  int _currentSubtitleIndex = -1;
   int _currentTimeMs = 0;
-  bool _isAutoScrolling = false;
-  bool _showFilteredDanmaku = false; // 是否显示被过滤的弹幕
   
   // 窗口滚动相关参数
-  final int _windowSize = 200; // 可见窗口大小
-  final int _bufferSize = 100; // 上下缓冲区大小
+  final int _windowSize = 100; // 可见窗口大小
+  final int _bufferSize = 50; // 上下缓冲区大小
   int _windowStartIndex = 0; // 当前窗口起始索引
   bool _isLoadingWindow = false;
   
@@ -49,16 +43,16 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
     super.initState();
     
     // 添加调试日志
-    debugPrint('DanmakuListMenu: initState - 开始加载弹幕');
+    debugPrint('SubtitleListMenu: initState - 开始加载字幕');
     
     // 延迟一点加载，确保VideoPlayerState已完全初始化
     Future.delayed(Duration(milliseconds: 500), () {
-      _loadDanmakus();
+      _loadSubtitles();
     });
     
-    // 设置定时刷新，跟踪当前播放位置相关的弹幕
+    // 设置定时刷新，跟踪当前播放位置相关的字幕
     _refreshTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      _updateCurrentDanmaku();
+      _updateCurrentSubtitle();
     });
     
     _scrollController.addListener(_handleScroll);
@@ -73,7 +67,7 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
   
   // 处理滚动事件
   void _handleScroll() {
-    if (_isLoadingWindow || _allSortedDanmakus.isEmpty) return;
+    if (_isLoadingWindow || _allSubtitleEntries.isEmpty) return;
     
     // 计算当前滚动位置对应的索引
     final scrollPosition = _scrollController.position.pixels;
@@ -85,14 +79,14 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
     
     // 如果接近顶部或底部，更新窗口
     if (isNearTop && _windowStartIndex > 0) {
-      // 向上滚动，显示更多顶部的弹幕
-      int newStartIndex = (_windowStartIndex - _bufferSize).clamp(0, _allSortedDanmakus.length - 1);
+      // 向上滚动，显示更多顶部的字幕
+      int newStartIndex = (_windowStartIndex - _bufferSize).clamp(0, _allSubtitleEntries.length - 1);
       _updateVisibleWindow(newStartIndex);
-    } else if (isNearBottom && _windowStartIndex + _visibleDanmakus.length < _allSortedDanmakus.length) {
-      // 向下滚动，显示更多底部的弹幕
+    } else if (isNearBottom && _windowStartIndex + _visibleEntries.length < _allSubtitleEntries.length) {
+      // 向下滚动，显示更多底部的字幕
       int newStartIndex = _windowStartIndex;
       // 确保添加新内容但保持部分已有内容
-      if (_visibleDanmakus.length >= _windowSize) {
+      if (_visibleEntries.length >= _windowSize) {
         // 如果当前显示的条目已经达到或超过窗口大小，向下移动窗口
         newStartIndex = _windowStartIndex + (_bufferSize ~/ 2);
       }
@@ -100,8 +94,8 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
     }
   }
 
-  // 加载弹幕数据
-  Future<void> _loadDanmakus() async {
+  // 加载字幕内容
+  Future<void> _loadSubtitles() async {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
@@ -111,47 +105,133 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
       final videoState = Provider.of<VideoPlayerState>(context, listen: false);
       _currentTimeMs = videoState.position.inMilliseconds;
       
-      // 获取弹幕数据 - 根据_showFilteredDanmaku选择显示全部弹幕还是过滤后的弹幕
-      List<Map<String, dynamic>> danmakus;
-      if (_showFilteredDanmaku) {
-        // 显示全部弹幕（包括被过滤的）
-        danmakus = List<Map<String, dynamic>>.from(videoState.danmakuList);
-      } else {
-        // 只显示未被过滤的弹幕
-        danmakus = List<Map<String, dynamic>>.from(videoState.getFilteredDanmakuList());
-      }
-      
-      if (danmakus.isEmpty) {
+      // 检查是否有活跃的字幕
+      if (videoState.player.activeSubtitleTracks.isEmpty) {
+        debugPrint('SubtitleListMenu: 没有活跃的字幕轨道');
         setState(() {
           _isLoading = false;
-          _errorMessage = '当前没有弹幕数据';
+          _errorMessage = '没有激活的字幕轨道';
         });
         return;
       }
       
-      // 对弹幕按时间排序
-      danmakus.sort((a, b) {
-        final timeA = (a['time'] as double?) ?? 0.0;
-        final timeB = (b['time'] as double?) ?? 0.0;
-        return timeA.compareTo(timeB);
-      });
+      // 获取字幕文件路径
+      String? subtitlePath = videoState.getActiveExternalSubtitlePath();
       
-      setState(() {
-        _allSortedDanmakus = danmakus;
-        _isLoading = false;
+      // 打印详细调试信息
+      debugPrint('SubtitleListMenu: 字幕路径: $subtitlePath');
+      debugPrint('SubtitleListMenu: 活跃轨道: ${videoState.player.activeSubtitleTracks}');
+      //debugPrint('SubtitleListMenu: 字幕轨道信息: ${videoState.danmakuTrackInfo}');
+      
+      // 如果字幕文件存在，尝试直接从文件系统查找匹配的字幕文件
+      if (subtitlePath == null || subtitlePath.isEmpty) {
+        // 尝试查找视频对应的默认字幕文件
+        if (videoState.currentVideoPath != null) {
+          final videoFile = File(videoState.currentVideoPath!);
+          if (videoFile.existsSync()) {
+            final videoDir = videoFile.parent.path;
+            final videoName = videoFile.path.split('/').last.split('.').first;
+            
+            // 常见字幕文件扩展名
+            final subtitleExts = ['.srt', '.ass', '.ssa', '.sub'];
+            
+            // 尝试查找同名字幕文件
+            for (final ext in subtitleExts) {
+              final potentialPath = '$videoDir/$videoName$ext';
+              debugPrint('SubtitleListMenu: 尝试查找字幕文件: $potentialPath');
+              if (File(potentialPath).existsSync()) {
+                subtitlePath = potentialPath;
+                debugPrint('SubtitleListMenu: 找到匹配的字幕文件: $subtitlePath');
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      if (subtitlePath != null && subtitlePath.isNotEmpty) {
+        debugPrint('SubtitleListMenu: 正在加载外部字幕文件: $subtitlePath');
         
-        // 找到当前时间最接近的弹幕索引
-        final nearestIndex = _findNearestDanmakuIndex(_currentTimeMs);
+        // 检查文件是否存在
+        final subtitleFile = File(subtitlePath);
+        if (!subtitleFile.existsSync()) {
+          debugPrint('SubtitleListMenu: 字幕文件不存在: $subtitlePath');
+          setState(() {
+            _isLoading = false;
+            _errorMessage = '字幕文件不存在或无法访问: $subtitlePath';
+          });
+          return;
+        }
         
-        // 初始化可见窗口，以当前时间最接近的弹幕为中心
-        _initializeVisibleWindow(nearestIndex);
-      });
+        // 尝试直接解析文件，不使用缓存
+        debugPrint('SubtitleListMenu: 开始解析字幕文件...');
+        final entries = await SubtitleParser.parseAssFile(subtitlePath);
+        debugPrint('SubtitleListMenu: 解析完成，共 ${entries.length} 条字幕');
+        
+        if (mounted) {
+          setState(() {
+            _allSubtitleEntries = entries;
+            _isLoading = false;
+            
+            if (entries.isEmpty) {
+              _errorMessage = '字幕文件解析后没有内容，可能格式不兼容';
+              return;
+            }
+            
+            // 找到当前时间最接近的字幕索引
+            final nearestIndex = _findNearestSubtitleIndex(_currentTimeMs);
+            
+            // 初始化可见窗口，以当前时间最接近的字幕为中心
+            _initializeVisibleWindow(nearestIndex);
+            
+            // 将解析结果缓存到VideoPlayerState中
+            if (subtitlePath != null) {
+              videoState.preloadSubtitleFile(subtitlePath);
+            }
+          });
+        }
+      } else {
+        // 处理内嵌字幕
+        debugPrint('SubtitleListMenu: 没有找到外部字幕文件，尝试处理内嵌字幕');
+        
+        // 尝试获取当前字幕文本
+        final subtitleText = videoState.getCurrentSubtitleText();
+        debugPrint('SubtitleListMenu: 当前字幕文本: $subtitleText');
+        
+        if (subtitleText.isNotEmpty) {
+          final currentEntry = SubtitleEntry(
+            startTimeMs: _currentTimeMs - 1000,
+            endTimeMs: _currentTimeMs + 4000,
+            content: subtitleText,
+          );
+          
+          setState(() {
+            _allSubtitleEntries = [currentEntry];
+            _visibleEntries = [currentEntry];
+            _currentSubtitleIndex = 0;
+            _isLoading = false;
+            
+            if (subtitleText.contains("正在播放内嵌字幕")) {
+              _errorMessage = '内嵌字幕内容只能实时显示，无法查看完整列表';
+            } else if (subtitleText.contains("正在使用外部字幕文件")) {
+              _errorMessage = '外部字幕文件路径存在但无法直接读取，请检查文件权限';
+            }
+          });
+          return;
+        }
+        
+        // 如果完全无法获取字幕内容
+        setState(() {
+          _isLoading = false;
+          _errorMessage = '无法解析字幕内容，请确保已正确加载字幕文件';
+        });
+      }
     } catch (e) {
-      debugPrint('DanmakuListMenu: 加载弹幕失败: $e');
+      debugPrint('SubtitleListMenu: 加载字幕失败: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = '加载弹幕失败: $e';
+          _errorMessage = '加载字幕失败: $e';
         });
       }
     }
@@ -160,25 +240,25 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
   // 初始化可见窗口
   void _initializeVisibleWindow(int centerIndex) {
     // 计算窗口起始索引，确保不超出边界
-    _windowStartIndex = (centerIndex - _windowSize ~/ 2).clamp(0, _allSortedDanmakus.length - _windowSize);
+    _windowStartIndex = (centerIndex - _windowSize ~/ 2).clamp(0, _allSubtitleEntries.length - _windowSize);
     if (_windowStartIndex < 0) _windowStartIndex = 0;
     
     // 计算窗口结束索引，确保不超出边界
     int windowEndIndex = _windowStartIndex + _windowSize;
-    if (windowEndIndex > _allSortedDanmakus.length) {
-      windowEndIndex = _allSortedDanmakus.length;
+    if (windowEndIndex > _allSubtitleEntries.length) {
+      windowEndIndex = _allSubtitleEntries.length;
       // 如果总条目不足一个窗口，调整起始索引
       _windowStartIndex = (windowEndIndex - _windowSize).clamp(0, windowEndIndex);
     }
     
     // 更新可见条目
-    _visibleDanmakus = _allSortedDanmakus.sublist(_windowStartIndex, windowEndIndex);
+    _visibleEntries = _allSubtitleEntries.sublist(_windowStartIndex, windowEndIndex);
     
-    // 设置滚动位置到当前时间对应的弹幕
+    // 设置滚动位置到当前时间对应的字幕
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         final localIndex = centerIndex - _windowStartIndex;
-        if (localIndex >= 0 && localIndex < _visibleDanmakus.length) {
+        if (localIndex >= 0 && localIndex < _visibleEntries.length) {
           final targetPosition = localIndex * _estimatedItemHeight;
           _scrollController.jumpTo(targetPosition);
         }
@@ -188,17 +268,17 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
   
   // 更新可见窗口
   void _updateVisibleWindow(int newStartIndex) {
-    if (_isLoadingWindow || _allSortedDanmakus.isEmpty) return;
+    if (_isLoadingWindow || _allSubtitleEntries.isEmpty) return;
     
     setState(() {
       _isLoadingWindow = true;
     });
     
     // 边界检查
-    newStartIndex = newStartIndex.clamp(0, _allSortedDanmakus.length - 1);
+    newStartIndex = newStartIndex.clamp(0, _allSubtitleEntries.length - 1);
     
     // 计算窗口结束索引，允许窗口增长
-    int newEndIndex = (newStartIndex + _windowSize * 2).clamp(0, _allSortedDanmakus.length);
+    int newEndIndex = (newStartIndex + _windowSize * 2).clamp(0, _allSubtitleEntries.length);
     
     // 保持当前滚动位置的相对索引
     final currentScrollPosition = _scrollController.hasClients ? _scrollController.position.pixels : 0;
@@ -210,16 +290,16 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
       // 如果是新窗口，完全替换
       if (newStartIndex != _windowStartIndex) {
         _windowStartIndex = newStartIndex;
-        _visibleDanmakus = _allSortedDanmakus.sublist(newStartIndex, newEndIndex);
+        _visibleEntries = _allSubtitleEntries.sublist(newStartIndex, newEndIndex);
       } 
       // 如果是追加内容（向下滚动）
-      else if (newEndIndex > _windowStartIndex + _visibleDanmakus.length) {
+      else if (newEndIndex > _windowStartIndex + _visibleEntries.length) {
         // 只添加新内容
-        final additionalEntries = _allSortedDanmakus.sublist(
-          _windowStartIndex + _visibleDanmakus.length, 
+        final additionalEntries = _allSubtitleEntries.sublist(
+          _windowStartIndex + _visibleEntries.length, 
           newEndIndex
         );
-        _visibleDanmakus.addAll(additionalEntries);
+        _visibleEntries.addAll(additionalEntries);
       }
       
       _isLoadingWindow = false;
@@ -238,23 +318,27 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
     }
   }
   
-  // 找到离当前时间最近的弹幕索引
-  int _findNearestDanmakuIndex(int currentTimeMs) {
-    if (_allSortedDanmakus.isEmpty) return 0;
+  // 找到离当前时间最近的字幕索引
+  int _findNearestSubtitleIndex(int currentTimeMs) {
+    if (_allSubtitleEntries.isEmpty) return 0;
     
-    // 将当前时间转换为秒
-    final currentTimeSec = currentTimeMs / 1000;
+    // 首先查找当前时间在字幕时间范围内的索引
+    for (int i = 0; i < _allSubtitleEntries.length; i++) {
+      final entry = _allSubtitleEntries[i];
+      if (currentTimeMs >= entry.startTimeMs && currentTimeMs <= entry.endTimeMs) {
+        return i;
+      }
+    }
     
-    // 查找最接近的弹幕
+    // 如果没有匹配的，查找最接近的字幕
     int closestIndex = 0;
-    double minDistance = double.infinity;
+    int minDistance = -1;
     
-    for (int i = 0; i < _allSortedDanmakus.length; i++) {
-      final danmaku = _allSortedDanmakus[i];
-      final danmakuTime = (danmaku['time'] as double?) ?? 0.0;
-      final distance = (danmakuTime - currentTimeSec).abs();
+    for (int i = 0; i < _allSubtitleEntries.length; i++) {
+      final entry = _allSubtitleEntries[i];
+      final distance = (entry.startTimeMs - currentTimeMs).abs();
       
-      if (distance < minDistance) {
+      if (minDistance == -1 || distance < minDistance) {
         minDistance = distance;
         closestIndex = i;
       }
@@ -263,150 +347,139 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
     return closestIndex;
   }
   
-  // 更新当前高亮的弹幕索引
-  void _updateCurrentDanmaku() {
-    if (!mounted || _isAutoScrolling) return;
+  // 更新当前高亮的字幕索引
+  void _updateCurrentSubtitle() {
+    if (!mounted) return;
     
     final videoState = Provider.of<VideoPlayerState>(context, listen: false);
     final currentPositionMs = videoState.position.inMilliseconds;
     _currentTimeMs = currentPositionMs;
     
-    // 如果没有弹幕数据，直接返回
-    if (_allSortedDanmakus.isEmpty) return;
+    // 如果是内嵌字幕且没有外部字幕文件
+    final hasActiveSubtitles = videoState.player.activeSubtitleTracks.isNotEmpty;
+    final subtitlePath = videoState.getActiveExternalSubtitlePath();
     
-    // 找到当前时间最接近的弹幕全局索引
-    final globalIndex = _findNearestDanmakuIndex(currentPositionMs);
+    // 对于内嵌字幕，需要定期更新内容
+    if (hasActiveSubtitles && subtitlePath == null && _errorMessage.contains('内嵌字幕')) {
+      final newSubtitleText = videoState.getCurrentSubtitleText();
+      
+      if (newSubtitleText.isNotEmpty) {
+        final currentEntry = SubtitleEntry(
+          startTimeMs: _currentTimeMs - 1000,
+          endTimeMs: _currentTimeMs + 4000,
+          content: newSubtitleText,
+        );
+        
+        setState(() {
+          _allSubtitleEntries = [currentEntry];
+          _visibleEntries = [currentEntry];
+          _currentSubtitleIndex = 0;
+          _errorMessage = ''; // 清除错误信息
+        });
+        return;
+      }
+    }
+    
+    // 为外部字幕文件更新高亮索引
+    if (_allSubtitleEntries.isEmpty) return;
+    
+    // 找到当前时间最接近的字幕全局索引
+    final globalIndex = _findNearestSubtitleIndex(currentPositionMs);
     
     // 计算在可见列表中的局部索引
     final localIndex = globalIndex - _windowStartIndex;
     
-    // 检查当前弹幕是否在可见窗口中
-    final isInVisibleWindow = localIndex >= 0 && localIndex < _visibleDanmakus.length;
+    // 检查当前字幕是否在可见窗口中
+    final isInVisibleWindow = localIndex >= 0 && localIndex < _visibleEntries.length;
     
-    // 如果当前弹幕不在可见窗口中，更新窗口
+    // 如果当前字幕不在可见窗口中，更新窗口
     if (!isInVisibleWindow) {
       _updateVisibleWindow(globalIndex - (_windowSize ~/ 2));
       return;
     }
     
     // 更新高亮索引
-    if (localIndex != _currentDanmakuIndex) {
+    if (localIndex != _currentSubtitleIndex) {
       setState(() {
-        _currentDanmakuIndex = localIndex;
+        _currentSubtitleIndex = localIndex;
       });
       
-      // 如果当前弹幕在可见窗口中但不在可见区域，自动滚动到该位置
+      // 如果当前字幕在可见窗口中但不在可见区域，自动滚动到该位置
       if (_scrollController.hasClients) {
         final itemOffset = localIndex * _estimatedItemHeight;
         final visibleStart = _scrollController.offset;
         final visibleEnd = visibleStart + _scrollController.position.viewportDimension;
         
         if (itemOffset < visibleStart || itemOffset > visibleEnd - _estimatedItemHeight) {
-          _isAutoScrolling = true;
           _scrollController.animateTo(
             itemOffset,
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
-          ).then((_) {
-            _isAutoScrolling = false;
-          });
+          );
         }
       }
     }
   }
   
   // 跳转到指定时间位置
-  void _seekToTime(double timeInSeconds) {
+  void _seekToTime(int timeMs) {
     final videoState = Provider.of<VideoPlayerState>(context, listen: false);
-    videoState.seekTo(Duration(milliseconds: (timeInSeconds * 1000).toInt()));
+    videoState.seekTo(Duration(milliseconds: timeMs));
   }
   
-  // 获取弹幕类型显示文本
-  String _getDanmakuTypeText(String? type) {
-    switch (type) {
-      case 'top': return '顶部';
-      case 'bottom': return '底部';
-      case 'scroll': return '滚动';
-      default: return '滚动';
-    }
-  }
-  
-  // 检查弹幕是否被过滤
-  bool _isDanmakuFiltered(Map<String, dynamic> danmaku) {
-    final videoState = Provider.of<VideoPlayerState>(context, listen: false);
-    return videoState.shouldBlockDanmaku(danmaku);
-  }
-  
-  // 格式化时间显示
-  String _formatTime(double timeInSeconds) {
-    final minutes = (timeInSeconds / 60).floor();
-    final seconds = (timeInSeconds % 60).floor();
-    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  // 获取全局索引对应的显示文本（用于调试）
+  String _getIndexLabel(int index) {
+    return '${_windowStartIndex + index}/${_allSubtitleEntries.length}';
   }
 
   @override
   Widget build(BuildContext context) {
-    // 计算字幕列表的适当高度
-    final screenHeight = MediaQuery.of(context).size.height;
-    final listHeight = globals.isPhone
-        ? screenHeight - 150 // 手机屏幕减去标题栏等高度
-        : screenHeight - 250; // 桌面屏幕减去标题栏等高度
-    
     return Consumer<VideoPlayerState>(
       builder: (context, videoState, child) {
-        final totalFilteredCount = videoState.danmakuList.length - videoState.getFilteredDanmakuList().length;
+        // 当前是否有字幕轨道激活
+        final hasActiveSubtitles = videoState.player.activeSubtitleTracks.isNotEmpty;
+        
+        // 计算字幕列表的适当高度
+        final screenHeight = MediaQuery.of(context).size.height;
+        final listHeight = globals.isPhone
+            ? screenHeight - 150 // 手机屏幕减去标题栏等高度
+            : screenHeight - 250; // 桌面屏幕减去标题栏等高度
+        
+        // 估计总滚动高度（用于提供滚动条的正确比例）
+        final estimatedTotalHeight = _allSubtitleEntries.length * _estimatedItemHeight;
+        final visibleHeight = _visibleEntries.length * _estimatedItemHeight;
         
         return BaseSettingsMenu(
-          title: '弹幕列表 ${_allSortedDanmakus.isNotEmpty ? "(${_allSortedDanmakus.length}条)" : ""}',
+          title: '字幕列表 ${_allSubtitleEntries.isNotEmpty ? "(${_allSubtitleEntries.length}条)" : ""}',
           onClose: widget.onClose,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 添加过滤设置开关
-              if (totalFilteredCount > 0)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '显示被过滤的弹幕 (${totalFilteredCount}条)',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Switch(
-                        value: _showFilteredDanmaku,
-                        onChanged: (value) {
-                          setState(() {
-                            _showFilteredDanmaku = value;
-                          });
-                          _loadDanmakus();
-                        },
-                        activeColor: Colors.blueAccent,
-                      ),
-                    ],
+          content: _isLoading
+            ? const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeWidth: 2,
                   ),
                 ),
-                
-              _isLoading
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
+              )
+            : !hasActiveSubtitles || _errorMessage.isNotEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                   child: Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      strokeWidth: 2,
+                    child: Text(
+                      _errorMessage.isEmpty ? '没有激活的字幕轨道\n请在字幕轨道设置中激活字幕' : _errorMessage,
+                      style: const TextStyle(color: Colors.white70),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 )
-              : _allSortedDanmakus.isEmpty || _errorMessage.isNotEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+              : _allSubtitleEntries.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20, horizontal: 16),
                     child: Center(
                       child: Text(
-                        _errorMessage.isEmpty ? '当前没有弹幕' : _errorMessage,
-                        style: const TextStyle(color: Colors.white70),
+                        '当前字幕轨道没有可显示的字幕内容',
+                        style: TextStyle(color: Colors.white70),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -415,19 +488,14 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
                     children: [
                       Container(
                         height: listHeight,
-                        child: globals.isPhone 
+                        child: globals.isPhone
                           ? ListView.builder(
                               controller: _scrollController,
                               padding: const EdgeInsets.only(top: 8, bottom: 16),
-                              itemCount: _visibleDanmakus.length,
+                              itemCount: _visibleEntries.length,
                               itemBuilder: (context, index) {
-                                // 列表项构建代码
-                                final danmaku = _visibleDanmakus[index];
-                                final timeInSeconds = (danmaku['time'] as double?) ?? 0.0;
-                                final content = (danmaku['content'] as String?) ?? '无效弹幕';
-                                final type = (danmaku['type'] as String?) ?? 'scroll';
-                                final isCurrentDanmaku = index == _currentDanmakuIndex;
-                                final isFiltered = _isDanmakuFiltered(danmaku);
+                                final entry = _visibleEntries[index];
+                                final isCurrentSubtitle = index == _currentSubtitleIndex;
                                 
                                 // 添加在顶部和底部时显示加载更多的逻辑
                                 if (index == 0 && _windowStartIndex > 0) {
@@ -437,8 +505,8 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
                                       _updateVisibleWindow(_windowStartIndex - _bufferSize);
                                     }
                                   });
-                                } else if (index == _visibleDanmakus.length - 1 && 
-                                          _windowStartIndex + _visibleDanmakus.length < _allSortedDanmakus.length) {
+                                } else if (index == _visibleEntries.length - 1 && 
+                                          _windowStartIndex + _visibleEntries.length < _allSubtitleEntries.length) {
                                   WidgetsBinding.instance.addPostFrameCallback((_) {
                                     // 当显示最后一项时，考虑加载更下方的内容
                                     if (_scrollController.position.pixels > _scrollController.position.maxScrollExtent - 100 &&
@@ -449,11 +517,11 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
                                 }
                                 
                                 return Material(
-                                  color: isCurrentDanmaku 
+                                  color: isCurrentSubtitle 
                                       ? Colors.blueAccent.withOpacity(0.3) 
                                       : Colors.transparent,
                                   child: InkWell(
-                                    onTap: () => _seekToTime(timeInSeconds),
+                                    onTap: () => _seekToTime(entry.startTimeMs),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                       decoration: BoxDecoration(
@@ -463,73 +531,53 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
                                             width: 0.5,
                                           ),
                                         ),
-                                        // 如果弹幕被过滤，添加背景色
-                                        color: isFiltered && _showFilteredDanmaku 
-                                            ? Colors.red.withOpacity(0.15) 
-                                            : null,
                                       ),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          // 时间和类型
+                                          // 时间戳
                                           Row(
                                             children: [
                                               Text(
-                                                _formatTime(timeInSeconds),
+                                                entry.formattedStartTime,
                                                 style: TextStyle(
                                                   color: Colors.grey.shade400,
                                                   fontSize: 12,
-                                                  fontWeight: isCurrentDanmaku ? FontWeight.bold : FontWeight.normal,
+                                                  fontWeight: isCurrentSubtitle ? FontWeight.bold : FontWeight.normal,
                                                 ),
                                               ),
-                                              const SizedBox(width: 8),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.grey.withOpacity(0.2),
-                                                  borderRadius: BorderRadius.circular(4),
+                                              const Text(
+                                                ' → ',
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 12,
                                                 ),
-                                                child: Text(
-                                                  _getDanmakuTypeText(type),
-                                                  style: TextStyle(
-                                                    color: Colors.grey.shade400,
-                                                    fontSize: 10,
-                                                  ),
+                                              ),
+                                              Text(
+                                                entry.formattedEndTime,
+                                                style: TextStyle(
+                                                  color: Colors.grey.shade400,
+                                                  fontSize: 12,
+                                                  fontWeight: isCurrentSubtitle ? FontWeight.bold : FontWeight.normal,
                                                 ),
                                               ),
                                               const Spacer(),
-                                              // 显示过滤状态
-                                              if (isFiltered && _showFilteredDanmaku)
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.red.withOpacity(0.2),
-                                                    borderRadius: BorderRadius.circular(4),
-                                                  ),
-                                                  child: const Text(
-                                                    '已过滤',
-                                                    style: TextStyle(
-                                                      color: Colors.red,
-                                                      fontSize: 10,
-                                                    ),
-                                                  ),
-                                                ),
                                             ],
                                           ),
                                           const SizedBox(height: 4),
-                                          // 弹幕内容
+                                          // 字幕内容
                                           Container(
                                             constraints: BoxConstraints(
                                               minHeight: 20,
                                               maxWidth: MediaQuery.of(context).size.width - 50,
                                             ),
                                             child: Text(
-                                              content,
+                                              entry.content,
                                               style: TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 14,
-                                                fontWeight: isCurrentDanmaku ? FontWeight.bold : FontWeight.normal,
+                                                fontWeight: isCurrentSubtitle ? FontWeight.bold : FontWeight.normal,
                                               ),
                                               softWrap: true,
                                               overflow: TextOverflow.visible,
@@ -548,14 +596,10 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
                               child: ListView.builder(
                                 controller: _scrollController,
                                 padding: const EdgeInsets.only(top: 8, bottom: 16),
-                                itemCount: _visibleDanmakus.length,
+                                itemCount: _visibleEntries.length,
                                 itemBuilder: (context, index) {
-                                  final danmaku = _visibleDanmakus[index];
-                                  final timeInSeconds = (danmaku['time'] as double?) ?? 0.0;
-                                  final content = (danmaku['content'] as String?) ?? '无效弹幕';
-                                  final type = (danmaku['type'] as String?) ?? 'scroll';
-                                  final isCurrentDanmaku = index == _currentDanmakuIndex;
-                                  final isFiltered = _isDanmakuFiltered(danmaku);
+                                  final entry = _visibleEntries[index];
+                                  final isCurrentSubtitle = index == _currentSubtitleIndex;
                                   
                                   // 添加在顶部和底部时显示加载更多的逻辑
                                   if (index == 0 && _windowStartIndex > 0) {
@@ -565,8 +609,8 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
                                         _updateVisibleWindow(_windowStartIndex - _bufferSize);
                                       }
                                     });
-                                  } else if (index == _visibleDanmakus.length - 1 && 
-                                            _windowStartIndex + _visibleDanmakus.length < _allSortedDanmakus.length) {
+                                  } else if (index == _visibleEntries.length - 1 && 
+                                            _windowStartIndex + _visibleEntries.length < _allSubtitleEntries.length) {
                                     WidgetsBinding.instance.addPostFrameCallback((_) {
                                       // 当显示最后一项时，考虑加载更下方的内容
                                       if (_scrollController.position.pixels > _scrollController.position.maxScrollExtent - 100 &&
@@ -577,11 +621,11 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
                                   }
                                   
                                   return Material(
-                                    color: isCurrentDanmaku 
+                                    color: isCurrentSubtitle 
                                         ? Colors.blueAccent.withOpacity(0.3) 
                                         : Colors.transparent,
                                     child: InkWell(
-                                      onTap: () => _seekToTime(timeInSeconds),
+                                      onTap: () => _seekToTime(entry.startTimeMs),
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                         decoration: BoxDecoration(
@@ -591,73 +635,53 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
                                               width: 0.5,
                                             ),
                                           ),
-                                          // 如果弹幕被过滤，添加背景色
-                                          color: isFiltered && _showFilteredDanmaku 
-                                              ? Colors.red.withOpacity(0.15) 
-                                              : null,
                                         ),
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            // 时间和类型
+                                            // 时间戳
                                             Row(
                                               children: [
                                                 Text(
-                                                  _formatTime(timeInSeconds),
+                                                  entry.formattedStartTime,
                                                   style: TextStyle(
                                                     color: Colors.grey.shade400,
                                                     fontSize: 12,
-                                                    fontWeight: isCurrentDanmaku ? FontWeight.bold : FontWeight.normal,
+                                                    fontWeight: isCurrentSubtitle ? FontWeight.bold : FontWeight.normal,
                                                   ),
                                                 ),
-                                                const SizedBox(width: 8),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.grey.withOpacity(0.2),
-                                                    borderRadius: BorderRadius.circular(4),
+                                                const Text(
+                                                  ' → ',
+                                                  style: TextStyle(
+                                                    color: Colors.grey,
+                                                    fontSize: 12,
                                                   ),
-                                                  child: Text(
-                                                    _getDanmakuTypeText(type),
-                                                    style: TextStyle(
-                                                      color: Colors.grey.shade400,
-                                                      fontSize: 10,
-                                                    ),
+                                                ),
+                                                Text(
+                                                  entry.formattedEndTime,
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade400,
+                                                    fontSize: 12,
+                                                    fontWeight: isCurrentSubtitle ? FontWeight.bold : FontWeight.normal,
                                                   ),
                                                 ),
                                                 const Spacer(),
-                                                // 显示过滤状态
-                                                if (isFiltered && _showFilteredDanmaku)
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.red.withOpacity(0.2),
-                                                      borderRadius: BorderRadius.circular(4),
-                                                    ),
-                                                    child: const Text(
-                                                      '已过滤',
-                                                      style: TextStyle(
-                                                        color: Colors.red,
-                                                        fontSize: 10,
-                                                      ),
-                                                    ),
-                                                  ),
                                               ],
                                             ),
                                             const SizedBox(height: 4),
-                                            // 弹幕内容
+                                            // 字幕内容
                                             Container(
                                               constraints: BoxConstraints(
                                                 minHeight: 20,
                                                 maxWidth: MediaQuery.of(context).size.width - 50,
                                               ),
                                               child: Text(
-                                                content,
+                                                entry.content,
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 14,
-                                                  fontWeight: isCurrentDanmaku ? FontWeight.bold : FontWeight.normal,
+                                                  fontWeight: isCurrentSubtitle ? FontWeight.bold : FontWeight.normal,
                                                 ),
                                                 softWrap: true,
                                                 overflow: TextOverflow.visible,
@@ -694,8 +718,6 @@ class _DanmakuListMenuState extends State<DanmakuListMenu> {
                         ),
                     ],
                   ),
-            ],
-          ),
         );
       },
     );
