@@ -3,11 +3,12 @@ import 'package:nipaplay/danmaku_abstraction/danmaku_content_item.dart';
 import 'gpu_danmaku_base_renderer.dart';
 import 'gpu_danmaku_item.dart';
 
-/// GPU顶部弹幕渲染器
+
+/// GPU底部弹幕渲染器
 ///
-/// 专门处理顶部弹幕的渲染，直接使用传入的位置信息。
-class GPUTopDanmakuRenderer extends GPUDanmakuBaseRenderer {
-  GPUTopDanmakuRenderer({
+/// 专门处理底部弹幕的渲染，直接使用传入的位置信息。
+class GPUBottomDanmakuRenderer extends GPUDanmakuBaseRenderer {
+  GPUBottomDanmakuRenderer({
     required super.config,
     required super.opacity,
     super.onNeedRepaint,
@@ -27,7 +28,7 @@ class GPUTopDanmakuRenderer extends GPUDanmakuBaseRenderer {
     }).toList();
 
     for (final item in visibleItems) {
-      if (item.type != DanmakuItemType.top) continue;
+      if (item.type != DanmakuItemType.bottom) continue;
 
       if (item.currentX != null && item.currentY != null) {
         final textWidth =
