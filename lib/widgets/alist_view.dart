@@ -211,7 +211,7 @@ class _AlistViewState extends State<AlistView> {
                   duration: const Duration(milliseconds: 300),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade900.withOpacity(0.3),
+                    color: Colors.red.shade900.withValues(alpha:0.3),
                     border:
                         Border(bottom: BorderSide(color: Colors.red.shade700)),
                   ),
@@ -257,7 +257,7 @@ class _AlistViewState extends State<AlistView> {
                                 borderRadius: BorderRadius.circular(24),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.3),
+                                    color: Colors.black.withValues(alpha:0.3),
                                     blurRadius: 12,
                                     offset: const Offset(0, 4),
                                   ),
@@ -317,9 +317,9 @@ class _AlistViewState extends State<AlistView> {
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
                                   color: file.isDir
-                                      ? const Color(0xFF96F7E4).withOpacity(0.1)
+                                      ? const Color(0xFF96F7E4).withValues(alpha:0.1)
                                       : file.isVideo
-                                          ? Colors.red.shade900.withOpacity(0.1)
+                                          ? Colors.red.shade900.withValues(alpha:0.1)
                                           : Colors.grey.shade800,
                                   borderRadius: BorderRadius.circular(10),
                                 ),

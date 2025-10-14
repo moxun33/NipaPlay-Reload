@@ -132,7 +132,7 @@ class _AlistDialogState extends State<AlistDialog> {
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             ),
@@ -173,7 +173,9 @@ class _AlistDialogState extends State<AlistDialog> {
                       child: InkWell(
                         onTap: () async {
                           await provider.setActiveHost(host.id);
-                          Navigator.of(context).pop();
+                          if (mounted) {
+                            Navigator.of(context).pop();
+                          }
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(
@@ -185,8 +187,10 @@ class _AlistDialogState extends State<AlistDialog> {
                                 height: 48,
                                 decoration: BoxDecoration(
                                   color: host.isOnline
-                                      ? Colors.green.shade900.withOpacity(0.3)
-                                      : Colors.red.shade900.withOpacity(0.3),
+                                      ? Colors.green.shade900
+                                          .withValues(alpha: 0.3)
+                                      : Colors.red.shade900
+                                          .withValues(alpha: 0.3),
                                   borderRadius: BorderRadius.circular(24),
                                 ),
                                 child: Center(
@@ -194,9 +198,10 @@ class _AlistDialogState extends State<AlistDialog> {
                                     'assets/alist.svg',
                                     width: 24,
                                     height: 24,
-                                    color: host.isOnline
-                                        ? Colors.green
-                                        : Colors.red,
+                                    colorFilter: ColorFilter.mode(
+                                      host.isOnline ? Colors.green : Colors.red,
+                                      BlendMode.srcIn,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -340,7 +345,7 @@ class _AlistDialogState extends State<AlistDialog> {
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade900.withOpacity(0.3),
+                  color: Colors.red.shade900.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.red.shade700),
                 ),
@@ -370,7 +375,8 @@ class _AlistDialogState extends State<AlistDialog> {
                 filled: true,
                 fillColor: const Color(0xFF3A3A3A),
                 labelStyle: TextStyle(color: theme.hintColor),
-                hintStyle: TextStyle(color: theme.hintColor.withOpacity(0.6)),
+                hintStyle: TextStyle(
+                    color: theme.hintColor.withValues(alpha: 0.3)),
               ),
               validator: (value) {
                 if (value?.trim().isEmpty ?? true) {
@@ -393,7 +399,8 @@ class _AlistDialogState extends State<AlistDialog> {
                 filled: true,
                 fillColor: const Color(0xFF3A3A3A),
                 labelStyle: TextStyle(color: theme.hintColor),
-                hintStyle: TextStyle(color: theme.hintColor.withOpacity(0.6)),
+                hintStyle: TextStyle(
+                    color: theme.hintColor.withValues(alpha: 0.6)),
               ),
               keyboardType: TextInputType.url,
               autocorrect: false,
@@ -401,7 +408,7 @@ class _AlistDialogState extends State<AlistDialog> {
                 if (value?.trim().isEmpty ?? true) {
                   return '请输入服务器地址';
                 }
-                if (!Uri.tryParse(value!)!.hasScheme ?? true) {
+                if (!Uri.tryParse(value!)!.hasScheme) {
                   return '请输入有效的URL (包含http/https)';
                 }
                 return null;
@@ -421,7 +428,8 @@ class _AlistDialogState extends State<AlistDialog> {
                 filled: true,
                 fillColor: const Color(0xFF3A3A3A),
                 labelStyle: TextStyle(color: theme.hintColor),
-                hintStyle: TextStyle(color: theme.hintColor.withOpacity(0.6)),
+                hintStyle: TextStyle(
+                    color: theme.hintColor.withValues(alpha: 0.6)),
               ),
               style: TextStyle(color: theme.textTheme.bodyMedium?.color),
             ),
@@ -438,7 +446,8 @@ class _AlistDialogState extends State<AlistDialog> {
                 filled: true,
                 fillColor: const Color(0xFF3A3A3A),
                 labelStyle: TextStyle(color: theme.hintColor),
-                hintStyle: TextStyle(color: theme.hintColor.withOpacity(0.6)),
+                hintStyle: TextStyle(
+                    color: theme.hintColor.withValues(alpha: 0.6)),
               ),
               obscureText: true,
               style: TextStyle(color: theme.textTheme.bodyMedium?.color),

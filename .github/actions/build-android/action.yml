@@ -148,8 +148,8 @@ runs:
             --ks-pass pass:${{ inputs.keystore-password }} \
             --ks-key-alias ${{ inputs.key-alias }} \
             --key-pass pass:${{ inputs.key-password }} \
-            --out "$output_apk" \
-            "$temp_aligned"
+            "$temp_aligned" \
+            --out "$output_apk"
 
           # 删除临时文件
           rm -f "$temp_aligned"
