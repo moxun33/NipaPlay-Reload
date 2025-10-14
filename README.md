@@ -1,4 +1,6 @@
 # GMPlay 自用自改
+- 在线url播放
+- Alist接口
 <div style="display: flex; align-items: center; justify-content: center;">
   <img src="https://github.com/user-attachments/assets/5366a99f-8906-4198-b2cf-2553252c0fb4" width="70%" style="margin-right: 20px;">
   <img src="icons/new-icon-apple.png" width="30%">
