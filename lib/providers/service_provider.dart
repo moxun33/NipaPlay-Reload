@@ -2,6 +2,7 @@ import 'package:nipaplay/services/web_server_service.dart';
 import 'jellyfin_provider.dart';
 import 'emby_provider.dart';
 import 'watch_history_provider.dart';
+import 'alist_provider.dart';
 
 class ServiceProvider {
   ServiceProvider._();
@@ -10,6 +11,7 @@ class ServiceProvider {
   static final JellyfinProvider jellyfinProvider = JellyfinProvider();
   static final EmbyProvider embyProvider = EmbyProvider();
   static final WatchHistoryProvider watchHistoryProvider = WatchHistoryProvider();
+  static final AlistProvider alistProvider = AlistProvider();
 
 
   static Future<void> initialize() async {
@@ -18,6 +20,7 @@ class ServiceProvider {
     await Future.wait([
       jellyfinProvider.initialize(),
       embyProvider.initialize(),
+      alistProvider.initialize(),
     ]);
     
     // 本地观看历史需要同步等待加载完成
@@ -25,4 +28,4 @@ class ServiceProvider {
     
     print('ServiceProvider: 所有服务初始化完成，连接验证将在后台异步进行');
   }
-} 
+}

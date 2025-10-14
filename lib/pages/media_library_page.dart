@@ -25,6 +25,8 @@ import 'package:nipaplay/widgets/nipaplay_theme/media_server_selection_sheet.dar
 import 'package:nipaplay/widgets/nipaplay_theme/shared_remote_host_selection_sheet.dart';
 import 'package:nipaplay/providers/shared_remote_library_provider.dart';
 import 'package:nipaplay/widgets/nipaplay_theme/blur_login_dialog.dart';
+import 'package:nipaplay/widgets/alist_dialog.dart';
+import 'package:nipaplay/models/playable_item.dart';
 
 // Define a callback type for when an episode is selected for playing
 typedef OnPlayEpisodeCallback = void Function(WatchHistoryItem item);
@@ -337,7 +339,21 @@ class _MediaLibraryPageState extends State<MediaLibraryPage> {
         await _showEmbyServerDialog();
       } else if (result == 'nipaplay') {
         await _showNipaplayServerDialog();
+      } else if (result == 'alist') {
+        await _showAlistDialog();
       }
+    }
+  }
+
+  Future<void> _showAlistDialog() async {
+    final result = await showDialog<dynamic>(
+      context: context,
+      builder: (context) => const AlistDialog(),
+    );
+    
+    if (result is PlayableItem && mounted) {
+      // 这里可以处理播放逻辑，根据实际需求调整
+      debugPrint('AList播放项: ${result.title}');
     }
   }
 

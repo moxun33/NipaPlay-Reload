@@ -15,6 +15,7 @@ import 'package:nipaplay/utils/globals.dart' as globals;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:nipaplay/services/file_picker_service.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:nipaplay/widgets/nipaplay_theme/url_input_dialog.dart';
 
 class VideoUploadUI extends StatefulWidget {
   const VideoUploadUI({super.key});
@@ -26,26 +27,33 @@ class VideoUploadUI extends StatefulWidget {
 class _VideoUploadUIState extends State<VideoUploadUI> {
   bool _isHovered = false;
   bool _isPressed = false;
+  bool _urlButtonHovered = false;
+  bool _urlButtonPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    final uiThemeProvider =
-        Provider.of<UIThemeProvider>(context, listen: false);
+    final uiThemeProvider = Provider.of<UIThemeProvider>(context, listen: false);
 
     if (uiThemeProvider.isFluentUITheme) {
       // 使用 FluentUI 版本
-      return FluentVideoUploadControl(
-        title: '选择视频文件',
-        subtitle: '支持 MP4, AVI, MKV 等格式\n单击选择文件开始播放',
-        onVideoSelected: (filePath) async {
-          final videoState =
-              Provider.of<VideoPlayerState>(context, listen: false);
-          videoState.setPreInitLoadingState('正在准备视频文件...');
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FluentVideoUploadControl(
+            title: '选择视频文件',
+            subtitle: '支持 MP4, AVI, MKV 等格式\n单击选择文件开始播放',
+            onVideoSelected: (filePath) async {
+              final videoState = Provider.of<VideoPlayerState>(context, listen: false);
+              videoState.setPreInitLoadingState('正在准备视频文件...');
 
-          Future.microtask(() async {
-            await videoState.initializePlayer(filePath);
-          });
-        },
+              Future.microtask(() async {
+                await videoState.initializePlayer(filePath);
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildUrlPlayButton(context),
+        ],
       );
     }
 
@@ -55,8 +63,8 @@ class _VideoUploadUIState extends State<VideoUploadUI> {
 
     return Center(
       child: GlassmorphicContainer(
-        width: 300,
-        height: 250,
+        width: 320,
+        height: 300,
         borderRadius: 20,
         blur: enableBlur ? 20 : 0,
         alignment: Alignment.center,
@@ -173,10 +181,129 @@ class _VideoUploadUIState extends State<VideoUploadUI> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            MouseRegion(
+              onEnter: (_) => setState(() => _urlButtonHovered = true),
+              onExit: (_) => setState(() => _urlButtonHovered = false),
+              cursor: SystemMouseCursors.click,
+              child: AnimatedScale(
+                duration: const Duration(milliseconds: 150),
+                scale: _urlButtonPressed
+                    ? 0.95
+                    : _urlButtonHovered
+                        ? 1.05
+                        : 1.0,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 150),
+                  opacity: _urlButtonHovered ? 0.8 : 1.0,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Stack(
+                      children: [
+                        GlassmorphicContainer(
+                          width: 150,
+                          height: 50,
+                          borderRadius: 12,
+                          blur: enableBlur ? 10 : 0,
+                          alignment: Alignment.center,
+                          border: 1,
+                          linearGradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              const Color(0xFFffffff)
+                                  .withOpacity(_urlButtonHovered ? 0.15 : 0.1),
+                              const Color(0xFFFFFFFF)
+                                  .withOpacity(_urlButtonHovered ? 0.1 : 0.05),
+                            ],
+                          ),
+                          borderGradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              const Color(0xFFffffff)
+                                  .withOpacity(_urlButtonHovered ? 0.7 : 0.5),
+                              const Color((0xFFFFFFFF))
+                                  .withOpacity(_urlButtonHovered ? 0.7 : 0.5),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Text(
+                              '输入URL播放',
+                              locale: Locale("zh-Hans", "zh"),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTapDown: (_) =>
+                                  setState(() => _urlButtonPressed = true),
+                              onTapUp: (_) =>
+                                  setState(() => _urlButtonPressed = false),
+                              onTapCancel: () =>
+                                  setState(() => _urlButtonPressed = false),
+                              onTap: _handleUrlPlay,
+                              splashColor: Colors.white.withOpacity(0.2),
+                              highlightColor: Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildUrlPlayButton(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: _handleUrlPlay,
+      icon: const Icon(Icons.link),
+      label: const Text('输入URL播放'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleUrlPlay() async {
+    try {
+      UrlInputDialog.show(
+        context,
+        title: '输入视频URL',
+        onUrlConfirmed: (url) async {
+          // 显示加载状态
+          final videoState = Provider.of<VideoPlayerState>(context, listen: false);
+          videoState.setPreInitLoadingState('正在准备视频文件...');
+          
+          // 使用URL作为actualPlayUrl参数
+          Future.microtask(() async {
+            await videoState.initializePlayer(
+              url, // 使用URL末尾部分作为标识
+              actualPlayUrl: url,
+            );
+          });
+        },
+      );
+    } catch (e) {
+      BlurSnackBar.show(context, '处理URL时出错: $e');
+    }
   }
 
   Future<void> _handleUploadVideo() async {
@@ -299,7 +426,7 @@ class _VideoUploadUIState extends State<VideoUploadUI> {
             if (!mounted) return; // 在延迟后再次检查 mounted
             try {
               // 先显示加载界面，然后再选择文件
-              final videoState =
+              final videoState = 
                   Provider.of<VideoPlayerState>(context, listen: false);
               videoState.setPreInitLoadingState('正在准备视频文件...');
 
