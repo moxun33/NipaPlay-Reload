@@ -35,7 +35,6 @@ class _AlistDialogState extends State<AlistDialog> {
   Widget build(BuildContext context) {
     return Consumer<AlistProvider>(
       builder: (context, provider, child) {
-        final theme = Theme.of(context);
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -75,7 +74,8 @@ class _AlistDialogState extends State<AlistDialog> {
               ),
               floatingActionButton: !_showServerForm
                   ? FloatingActionButton.extended(
-                      onPressed: () => _showServerFormMethod(provider: provider),
+                      onPressed: () =>
+                          _showServerFormMethod(provider: provider),
                       icon: const Icon(Icons.add),
                       label: const Text('添加服务器'),
                       elevation: 6,
@@ -254,7 +254,8 @@ class _AlistDialogState extends State<AlistDialog> {
                                       // 错误已经在provider中处理
                                     }
                                   } else if (value == 'edit') {
-                                    _showServerFormMethod(hostId: host.id, provider: provider);
+                                    _showServerFormMethod(
+                                        hostId: host.id, provider: provider);
                                   } else if (value == 'delete') {
                                     showDialog(
                                       context: context,
@@ -298,7 +299,8 @@ class _AlistDialogState extends State<AlistDialog> {
     );
   }
 
-  void _showServerFormMethod({String? hostId, required AlistProvider provider}) {
+  void _showServerFormMethod(
+      {String? hostId, required AlistProvider provider}) {
     setState(() {
       _showServerForm = true;
       _editingHostId = hostId;
@@ -329,10 +331,8 @@ class _AlistDialogState extends State<AlistDialog> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              isEditMode ? '编辑AList服务器' : '添加AList服务器', 
-              style: theme.textTheme.titleLarge
-            ),
+            Text(isEditMode ? '编辑AList服务器' : '添加AList服务器',
+                style: theme.textTheme.titleLarge),
             const SizedBox(height: 24),
             if (provider.errorMessage != null)
               AnimatedContainer(
