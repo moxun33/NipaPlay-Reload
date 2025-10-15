@@ -41,7 +41,8 @@ class _AlistViewState extends State<AlistView> {
   Future<void> _loadPreferences() async {
     _prefs = await SharedPreferences.getInstance();
     // 尝试获取上次访问的路径
-    final savedPath = _prefs?.getString('alist_last_path_${widget.hostId ?? 'default'}');
+    final savedPath =
+        _prefs?.getString('alist_last_path_${widget.hostId ?? 'default'}');
     if (savedPath != null) {
       _lastVisitedPath = savedPath;
     }
@@ -50,7 +51,8 @@ class _AlistViewState extends State<AlistView> {
   // 缓存当前路径
   Future<void> _cacheCurrentPath(String path) async {
     if (_prefs != null) {
-      await _prefs!.setString('alist_last_path_${widget.hostId ?? 'default'}', path);
+      await _prefs!
+          .setString('alist_last_path_${widget.hostId ?? 'default'}', path);
       _lastVisitedPath = path;
     }
   }
@@ -64,7 +66,8 @@ class _AlistViewState extends State<AlistView> {
       }
 
       // 如果提供了hostId，确保它是活动的
-      if (widget.hostId != null && widget.hostId != _alistProvider.activeHostId) {
+      if (widget.hostId != null &&
+          widget.hostId != _alistProvider.activeHostId) {
         await _alistProvider.setActiveHost(widget.hostId!);
       }
 
@@ -78,7 +81,8 @@ class _AlistViewState extends State<AlistView> {
           // 如果加载上次路径失败，回退到根目录
           await _alistProvider.navigateTo('/');
         }
-      } else if (_alistProvider.isConnected && _alistProvider.currentPath.isEmpty) {
+      } else if (_alistProvider.isConnected &&
+          _alistProvider.currentPath.isEmpty) {
         // 如果已连接但当前路径为空，加载上次访问的路径
         await _alistProvider.navigateTo(_lastVisitedPath);
       }
@@ -187,12 +191,47 @@ class _AlistViewState extends State<AlistView> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: theme.dividerColor),
                         ),
-                        child: Text(
-                          provider.currentPath,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontFamily: 'monospace',
-                          ),
-                          overflow: TextOverflow.ellipsis,
+                        child: Row(
+                          children: provider.currentPath
+                              .split('/')
+                              .asMap()
+                              .entries
+                              .map((entry) {
+                            final index = entry.key;
+                            final pathSegment = entry.value;
+                            // 拼接当前层级的完整路径
+                            final fullPath = index == 0
+                                ? '/'
+                                : provider.currentPath
+                                    .split('/')
+                                    .sublist(0, index + 1)
+                                    .join('/');
+                            return GestureDetector(
+                              onTap: () async {
+                                await provider.navigateTo(fullPath);
+                                await _cacheCurrentPath(fullPath);
+                              },
+                              child: Row(
+                                children: [
+                                  if (index != 0)
+                                    Text('/',
+                                        style: TextStyle(
+                                            color: theme
+                                                .textTheme.bodyMedium?.color)),
+                                  Text(
+                                    pathSegment.isEmpty && index == 0
+                                        ? '/'
+                                        : pathSegment,
+                                    style: TextStyle(
+                                      color: theme.textTheme.bodyMedium?.color,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ),
                     ),
@@ -211,7 +250,7 @@ class _AlistViewState extends State<AlistView> {
                   duration: const Duration(milliseconds: 300),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade900.withValues(alpha:0.3),
+                    color: Colors.red.shade900.withValues(alpha: 0.3),
                     border:
                         Border(bottom: BorderSide(color: Colors.red.shade700)),
                   ),
@@ -257,7 +296,7 @@ class _AlistViewState extends State<AlistView> {
                                 borderRadius: BorderRadius.circular(24),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha:0.3),
+                                    color: Colors.black.withValues(alpha: 0.3),
                                     blurRadius: 12,
                                     offset: const Offset(0, 4),
                                   ),
@@ -294,13 +333,14 @@ class _AlistViewState extends State<AlistView> {
                               ),
                               onTap: () async {
                                 if (file.isDir) {
-                                  final newPath = '${provider.currentPath == '/' ? '' : provider.currentPath}/${file.name}';
+                                  final newPath =
+                                      '${provider.currentPath == '/' ? '' : provider.currentPath}/${file.name}';
                                   await provider.navigateTo(newPath);
                                   // 缓存新路径
                                   await _cacheCurrentPath(newPath);
                                 } else if (file.isVideo) {
                                   try {
-                                    final playableItem = 
+                                    final playableItem =
                                         provider.buildPlayableItem(file);
                                     widget.onPlayEpisode(playableItem);
                                   } catch (e) {
@@ -317,9 +357,11 @@ class _AlistViewState extends State<AlistView> {
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
                                   color: file.isDir
-                                      ? const Color(0xFF96F7E4).withValues(alpha:0.1)
+                                      ? const Color(0xFF96F7E4)
+                                          .withValues(alpha: 0.1)
                                       : file.isVideo
-                                          ? Colors.red.shade900.withValues(alpha:0.1)
+                                          ? Colors.red.shade900
+                                              .withValues(alpha: 0.1)
                                           : Colors.grey.shade800,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
