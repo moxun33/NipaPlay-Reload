@@ -219,12 +219,9 @@ class _AlistViewState extends State<AlistView> {
                                             color: theme
                                                 .textTheme.bodyMedium?.color)),
                                   Text(
-                                    pathSegment.isEmpty && index == 0
-                                        ? '/'
-                                        : pathSegment,
+                                    pathSegment,
                                     style: TextStyle(
                                       color: theme.textTheme.bodyMedium?.color,
-                                      decoration: TextDecoration.underline,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
