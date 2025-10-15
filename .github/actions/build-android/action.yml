@@ -179,4 +179,3 @@ runs:
         apk_paths=$(IFS=';'; echo "${signed_apks[*]}")
         echo "apk_path=$apk_paths" >> $GITHUB_OUTPUT
         echo "生成的APK数量: ${#signed_apks[@]}"
-
