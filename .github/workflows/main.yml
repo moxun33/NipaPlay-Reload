@@ -4,7 +4,6 @@ name: Build & Release (Modular)
 on:
   push:
     branches:
-      - 'main'
       - 'me'
 
 # If previous workflow is still running, we push again, we will cancel the previous workflow
@@ -193,8 +192,8 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
           # Get latest code
-          git fetch origin refs/heads/main:refs/remotes/origin/main
-          git checkout -B main refs/remotes/origin/main
+          git fetch origin refs/heads/me:refs/remotes/origin/me
+          git checkout -B me refs/remotes/origin/me
           
           # Read and update version
           CURRENT_VERSION=$(grep '^version:' pubspec.yaml | cut -d ' ' -f 2)
@@ -214,7 +213,7 @@ jobs:
           # Commit and push changes
           git add pubspec.yaml
           git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
-          git push origin refs/heads/main
+          git push origin refs/heads/me
 
   UpdateHomebrewTap:
     name: Update Homebrew Tap
