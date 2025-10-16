@@ -909,7 +909,7 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
     } else {
       _episodeId = null;
       _animeId = null;
-      debugPrint('VideoPlayerState: 没有 historyItem，重置弹幕 ID');
+      debugPrint('VideoPlayerState: 没有 historyItem，重置弹幕 ID ');
     }
 
     // 检查是否为网络URL (HTTP或HTTPS)

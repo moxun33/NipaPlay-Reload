@@ -11,7 +11,7 @@ class MediaServerSelectionSheet extends StatelessWidget {
   static Future<String?> show(BuildContext context) {
     return showModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0xFF2F2F2F), // 设置背景主色调
       isScrollControlled: true,
       builder: (context) => const MediaServerSelectionSheet(),
     );
@@ -32,7 +32,9 @@ class MediaServerSelectionSheet extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         borderRadius: 20,
-        blur: context.watch<AppearanceSettingsProvider>().enableWidgetBlurEffect ? 20 : 0,
+        blur: context.watch<AppearanceSettingsProvider>().enableWidgetBlurEffect
+            ? 20
+            : 0,
         alignment: Alignment.center,
         border: 1,
         linearGradient: LinearGradient(
@@ -66,21 +68,21 @@ class MediaServerSelectionSheet extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // 标题
             const Padding(
               padding: EdgeInsets.only(bottom: 16),
               child: Text(
                 '选择媒体服务器',
-                locale:Locale("zh-Hans","zh"),
-style: TextStyle(
+                locale: Locale("zh-Hans", "zh"),
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-            
+
             // 服务器选项列表
             Expanded(
               child: SingleChildScrollView(
@@ -116,6 +118,17 @@ style: TextStyle(
                       subtitle: '功能丰富的媒体服务器',
                       color: const Color(0xFF52B54B),
                       onTap: () => Navigator.of(context).pop('emby'),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // AList 选项 - 已优化样式
+                    _buildServerOptionWithSvg(
+                      svgAsset: 'assets/alist.svg',
+                      title: 'AList',
+                      subtitle: '文件列表管理工具',
+                      color: const Color(0xFF96F7E4), // 保持主色调一致
+                      onTap: () => Navigator.of(context).pop('alist'),
                     ),
 
                     // 添加底部边距，确保最后一项可以完全显示
@@ -160,6 +173,18 @@ style: TextStyle(
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: color.withOpacity(0.5),
+                    width: 1,
+                  ),
+                  // 为AList图标添加发光效果
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.5),
+                      blurRadius: 10,
+                      offset: const Offset(0, 0),
+                    ),
+                  ],
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -172,7 +197,7 @@ style: TextStyle(
                 ),
               ),
               const SizedBox(width: 16),
-              
+
               // 文本信息
               Expanded(
                 child: Column(
@@ -189,8 +214,8 @@ style: TextStyle(
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      locale:Locale("zh-Hans","zh"),
-style: TextStyle(
+                      locale: Locale("zh-Hans", "zh"),
+                      style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 14,
                       ),
@@ -198,7 +223,7 @@ style: TextStyle(
                   ],
                 ),
               ),
-              
+
               // 箭头图标
               Icon(
                 Ionicons.chevron_forward,
