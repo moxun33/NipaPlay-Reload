@@ -421,7 +421,8 @@ class _MediaLibraryTabsState extends State<_MediaLibraryTabs>
         final currentJellyfinConnectionState = jellyfinProvider.isConnected;
         final currentEmbyConnectionState = embyProvider.isConnected;
         final currentSharedState = sharedProvider.hosts.isNotEmpty;
-        final currentAlistHosts = alistProvider.hosts;
+        final currentAlistHosts =
+            alistProvider.hosts.where((host) => host.enabled && host.isOnline).toList();
         final currentAlistHostIds =
             currentAlistHosts.map((host) => host.id).toList();
 
@@ -532,7 +533,6 @@ class _MediaLibraryTabsState extends State<_MediaLibraryTabs>
                   colorFilter: const ColorFilter.mode(
                       Color(0xFF96F7E4), BlendMode.srcIn),
                 ),
-
                 Text(host.displayName),
               ],
             ),

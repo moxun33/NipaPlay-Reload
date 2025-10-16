@@ -39,6 +39,7 @@ class AlistProvider extends ChangeNotifier {
     required String baseUrl,
     String username = '',
     String password = '',
+    bool enabled = true,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -50,6 +51,7 @@ class AlistProvider extends ChangeNotifier {
         baseUrl: baseUrl,
         username: username,
         password: password,
+        enabled: enabled,
       );
       
       _isConnected = host.isOnline;
@@ -99,6 +101,7 @@ class AlistProvider extends ChangeNotifier {
     String? baseUrl,
     String? username,
     String? password,
+    bool? enabled,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -111,6 +114,7 @@ class AlistProvider extends ChangeNotifier {
         baseUrl: baseUrl,
         username: username,
         password: password,
+        enabled: enabled,
       );
       
       // 如果更新的是当前活动主机，更新连接状态

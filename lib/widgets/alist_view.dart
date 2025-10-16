@@ -149,6 +149,15 @@ class _AlistViewState extends State<AlistView> {
                     ),
                     child: const Text('重新连接'),
                   ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () async {
+                      await _alistProvider.navigateTo('/');
+                      await _cacheCurrentPath('/');
+                    },
+                    child: const Text('返回根目录',
+                        style: TextStyle(color: Colors.white)),
+                  )
                 ],
               ),
             ),

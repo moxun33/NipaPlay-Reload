@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,7 +20,7 @@ class AlistService {
 
   List<AlistHost> get hosts => List.unmodifiable(_hosts);
   List<String> get activeHostIds => List.unmodifiable(_activeHostIds);
-  List<AlistHost> get activeHosts => _hosts.where((host) => _activeHostIds.contains(host.id)).toList();
+  List<AlistHost> get activeHosts => _hosts.where((host) => host.enabled && _activeHostIds.contains(host.id)).toList();
   AlistHost? get activeHost {
     if (_activeHostIds.isEmpty) return null;
     try {
@@ -91,7 +90,7 @@ class AlistService {
   }
 
   // 添加新的AList服务器配置
-  Future<AlistHost> addHost({required String displayName, required String baseUrl, String username = '', String password = ''}) async {
+  Future<AlistHost> addHost({required String displayName, required String baseUrl, String username = '', String password = '', bool enabled = true}) async {
     final normalizedUrl = _normalizeBaseUrl(baseUrl);
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final host = AlistHost(
@@ -100,6 +99,7 @@ class AlistService {
       baseUrl: normalizedUrl,
       username: username,
       password: password,
+      enabled: enabled,
     );
 
     _hosts.add(host);
@@ -178,6 +178,7 @@ class AlistService {
     String? baseUrl,
     String? username,
     String? password,
+    bool? enabled,
   }) async {
     final index = _hosts.indexWhere((host) => host.id == hostId);
     if (index == -1) {
@@ -194,6 +195,7 @@ class AlistService {
       baseUrl: normalizedUrl,
       username: username ?? oldHost.username,
       password: password ?? oldHost.password,
+      enabled: enabled ?? oldHost.enabled,
       // 更新URL或凭证时，重置token信息
       token: (baseUrl != null || username != null || password != null)
           ? null

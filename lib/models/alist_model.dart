@@ -1,7 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
-
 class AlistHost {
   AlistHost({
     required this.id,
@@ -14,6 +12,7 @@ class AlistHost {
     this.lastConnectedAt,
     this.lastError,
     this.isOnline = false,
+    this.enabled = true,
   });
 
   final String id;
@@ -26,6 +25,7 @@ class AlistHost {
   final DateTime? lastConnectedAt;
   final String? lastError;
   final bool isOnline;
+  final bool enabled;
 
   AlistHost copyWith({
     String? id,
@@ -38,6 +38,7 @@ class AlistHost {
     DateTime? lastConnectedAt,
     String? lastError,
     bool? isOnline,
+    bool? enabled,
   }) {
     return AlistHost(
       id: id ?? this.id,
@@ -50,6 +51,7 @@ class AlistHost {
       lastConnectedAt: lastConnectedAt ?? this.lastConnectedAt,
       lastError: lastError,
       isOnline: isOnline ?? this.isOnline,
+      enabled: enabled ?? this.enabled,
     );
   }
 
@@ -65,32 +67,36 @@ class AlistHost {
       'lastConnectedAt': lastConnectedAt?.toIso8601String(),
       'lastError': lastError,
       'isOnline': isOnline,
+      'enabled': enabled,
     };
   }
 
   factory AlistHost.fromJson(Map<String, dynamic> json) {
+    // 确保json是Map<String, dynamic>类型
+    final safeJson = Map<String, dynamic>.from(json);
     return AlistHost(
-      id: json['id'] as String? ?? '',
-      displayName: json['displayName'] as String? ?? 'AList',
-      baseUrl: json['baseUrl'] as String? ?? '',
-      username: json['username'] as String? ?? '',
-      password: json['password'] as String? ?? '',
-      token: json['token'] as String?,
-      tokenExpiresAt: json['tokenExpiresAt'] != null
-          ? DateTime.tryParse(json['tokenExpiresAt'] as String? ?? '')
+      id: safeJson['id'] as String? ?? '',
+      displayName: safeJson['displayName'] as String? ?? 'AList',
+      baseUrl: safeJson['baseUrl'] as String? ?? '',
+      username: safeJson['username'] as String? ?? '',
+      password: safeJson['password'] as String? ?? '',
+      token: safeJson['token'] as String?,
+      tokenExpiresAt: safeJson['tokenExpiresAt'] != null
+          ? DateTime.tryParse(safeJson['tokenExpiresAt'] as String? ?? '')
           : null,
-      lastConnectedAt: json['lastConnectedAt'] != null
-          ? DateTime.tryParse(json['lastConnectedAt'] as String? ?? '')
+      lastConnectedAt: safeJson['lastConnectedAt'] != null
+          ? DateTime.tryParse(safeJson['lastConnectedAt'] as String? ?? '')
           : null,
-      lastError: json['lastError'] as String?,
-      isOnline: json['isOnline'] as bool? ?? false,
+      lastError: safeJson['lastError'] as String?,
+      isOnline: safeJson['isOnline'] as bool? ?? false,
+      enabled: safeJson['enabled'] as bool? ?? true,
     );
   }
 
   static List<AlistHost> decodeList(String raw) {
     final decoded = json.decode(raw) as List<dynamic>;
     return decoded
-        .map((item) => AlistHost.fromJson(item as Map<String, dynamic>))
+        .map((item) => AlistHost.fromJson(Map<String, dynamic>.from(item)))
         .toList();
   }
 
@@ -123,18 +129,21 @@ class AlistFile {
   final String? hashinfo;
 
   factory AlistFile.fromJson(Map<String, dynamic> json) {
+    // 确保json是Map<String, dynamic>类型
+    final safeJson = Map<String, dynamic>.from(json);
     return AlistFile(
-      name: json['name'] as String? ?? '',
-      size: json['size'] as int? ?? 0,
-      isDir: json['is_dir'] as bool? ?? false,
-      modified: DateTime.tryParse(json['modified'] as String? ?? '') ?? DateTime.now(),
-      sign: json['sign'] as String? ?? '',
-      thumb: json['thumb'] as String? ?? '',
-      type: json['type'] as int? ?? 0,
-      created: json['created'] != null
-          ? DateTime.tryParse(json['created'] as String)
+      name: safeJson['name'] as String? ?? '',
+      size: safeJson['size'] as int? ?? 0,
+      isDir: safeJson['is_dir'] as bool? ?? false,
+      modified: DateTime.tryParse(safeJson['modified'] as String? ?? '') ??
+          DateTime.now(),
+      sign: safeJson['sign'] as String? ?? '',
+      thumb: safeJson['thumb'] as String? ?? '',
+      type: safeJson['type'] as int? ?? 0,
+      created: safeJson['created'] != null
+          ? DateTime.tryParse(safeJson['created'] as String? ?? '')
           : null,
-      hashinfo: json['hashinfo'] as String?,    
+      hashinfo: safeJson['hashinfo'] as String?,
     );
   }
 
@@ -164,7 +173,7 @@ class AlistFileListResponse {
       code: json['code'] as int? ?? -1,
       message: json['message'] as String? ?? '未知错误',
       data: AlistFileListData.fromJson(
-          (json['data'] ?? {}) as Map<String, dynamic>),
+          Map<String, dynamic>.from(json['data'] ?? {})),
     );
   }
 }
@@ -190,7 +199,8 @@ class AlistFileListData {
     return AlistFileListData(
       content: json.containsKey('content') && json['content'] != null
           ? (json['content'] as List<dynamic>)
-              .map((item) => AlistFile.fromJson(item as Map<String, dynamic>))
+              .map(
+                  (item) => AlistFile.fromJson(Map<String, dynamic>.from(item)))
               .toList()
           : [],
       total: json['total'] as int? ?? 0,

@@ -14,8 +14,9 @@ class AlistDialog extends StatefulWidget {
 class _AlistDialogState extends State<AlistDialog> {
   bool _showServerForm = false;
   String? _editingHostId;
+  bool _enabled = true;
   final _formKey = GlobalKey<FormState>();
-  final _displayNameController = TextEditingController();
+  final _displayNameController = TextEditingController(text: 'AList');
   final _baseUrlController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -179,62 +180,75 @@ class _AlistDialogState extends State<AlistDialog> {
                         },
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: host.isOnline
-                                      ? Colors.green.shade900
-                                          .withValues(alpha: 0.3)
-                                      : Colors.red.shade900
-                                          .withValues(alpha: 0.3),
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                child: Center(
-                                  child: SvgPicture.asset(
-                                    'assets/alist.svg',
-                                    width: 24,
-                                    height: 24,
-                                    colorFilter: ColorFilter.mode(
-                                      host.isOnline ? Colors.green : Colors.red,
-                                      BlendMode.srcIn,
-                                    ),
-                                  ),
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: host.isOnline
+                                  ? Colors.green.shade900
+                                      .withValues(alpha: 0.3)
+                                  : Colors.red.shade900
+                                      .withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Center(
+                              child: SvgPicture.asset(
+                                'assets/alist.svg',
+                                width: 24,
+                                height: 24,
+                                colorFilter: ColorFilter.mode(
+                                  host.isOnline ? Colors.green : Colors.red,
+                                  BlendMode.srcIn,
                                 ),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   children: [
                                     Text(
                                       host.displayName,
                                       style: theme.textTheme.titleMedium,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    Text(
-                                      host.baseUrl,
-                                      style:
-                                          theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.hintColor,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    if (host.username.isNotEmpty)
-                                      Text(
-                                        '用户名: ${host.username}',
-                                        style:
-                                            theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.hintColor,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
+                                    const SizedBox(width: 8),
+                                    if (!host.enabled)
+                                      Chip(
+                                        label: const Text('已禁用', style: TextStyle(fontSize: 10)),
+                                        backgroundColor: Colors.grey.shade700,
+                                        labelStyle: const TextStyle(color: Colors.grey),
+                                        padding: EdgeInsets.zero,
+                                        labelPadding: const EdgeInsets.symmetric(horizontal: 6),
                                       ),
                                   ],
                                 ),
-                              ),
+                                Text(
+                                  host.baseUrl,
+                                  style:
+                                      theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.hintColor,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (host.username.isNotEmpty)
+                                  Text(
+                                    '用户名: ${host.username}',
+                                    style:
+                                        theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.hintColor,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                              ],
+                            ),
+                          ),
                               PopupMenuButton<String>(
                                 itemBuilder: (context) => [
                                   const PopupMenuItem(
@@ -321,6 +335,9 @@ class _AlistDialogState extends State<AlistDialog> {
         _displayNameController.text = host.displayName;
         _baseUrlController.text = host.baseUrl;
         _usernameController.text = host.username;
+        _enabled = host.enabled;
+      } else {
+        _enabled = true; // 新增服务器默认启用
       }
     });
   }
@@ -375,13 +392,13 @@ class _AlistDialogState extends State<AlistDialog> {
                 filled: true,
                 fillColor: const Color(0xFF3A3A3A),
                 labelStyle: TextStyle(color: theme.hintColor),
-                hintStyle: TextStyle(
-                    color: theme.hintColor.withValues(alpha: 0.3)),
+                hintStyle:
+                    TextStyle(color: theme.hintColor.withValues(alpha: 0.3)),
               ),
               validator: (value) {
-                if (value?.trim().isEmpty ?? true) {
+                /* if (value?.trim().isEmpty ?? true) {
                   return '请输入服务器昵称';
-                }
+                } */
                 return null;
               },
               style: TextStyle(color: theme.textTheme.bodyMedium?.color),
@@ -399,8 +416,8 @@ class _AlistDialogState extends State<AlistDialog> {
                 filled: true,
                 fillColor: const Color(0xFF3A3A3A),
                 labelStyle: TextStyle(color: theme.hintColor),
-                hintStyle: TextStyle(
-                    color: theme.hintColor.withValues(alpha: 0.6)),
+                hintStyle:
+                    TextStyle(color: theme.hintColor.withValues(alpha: 0.6)),
               ),
               keyboardType: TextInputType.url,
               autocorrect: false,
@@ -428,8 +445,8 @@ class _AlistDialogState extends State<AlistDialog> {
                 filled: true,
                 fillColor: const Color(0xFF3A3A3A),
                 labelStyle: TextStyle(color: theme.hintColor),
-                hintStyle: TextStyle(
-                    color: theme.hintColor.withValues(alpha: 0.6)),
+                hintStyle:
+                    TextStyle(color: theme.hintColor.withValues(alpha: 0.6)),
               ),
               style: TextStyle(color: theme.textTheme.bodyMedium?.color),
             ),
@@ -446,11 +463,25 @@ class _AlistDialogState extends State<AlistDialog> {
                 filled: true,
                 fillColor: const Color(0xFF3A3A3A),
                 labelStyle: TextStyle(color: theme.hintColor),
-                hintStyle: TextStyle(
-                    color: theme.hintColor.withValues(alpha: 0.6)),
+                hintStyle:
+                    TextStyle(color: theme.hintColor.withValues(alpha: 0.6)),
               ),
               obscureText: true,
               style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+            ),
+            const SizedBox(height: 16),
+            SwitchListTile(
+              title: Text('启用服务器', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+              value: _enabled,
+              onChanged: (bool value) {
+                setState(() {
+                  _enabled = value;
+                });
+              },
+              activeColor: const Color(0xFF96F7E4),
+              activeTrackColor: const Color(0xFF96F7E4).withOpacity(0.3),
+              inactiveThumbColor: Colors.grey.shade600,
+              inactiveTrackColor: Colors.grey.shade700,
             ),
             const SizedBox(height: 24),
             Row(
@@ -466,6 +497,7 @@ class _AlistDialogState extends State<AlistDialog> {
                       _baseUrlController.clear();
                       _usernameController.clear();
                       _passwordController.clear();
+                      _enabled = true;
                     });
                   },
                   style: ElevatedButton.styleFrom(
@@ -499,6 +531,7 @@ class _AlistDialogState extends State<AlistDialog> {
                           baseUrl: baseUrl,
                           username: username,
                           password: password,
+                          enabled: _enabled,
                         );
                       } else {
                         // 添加模式
@@ -507,6 +540,7 @@ class _AlistDialogState extends State<AlistDialog> {
                           baseUrl: baseUrl,
                           username: username,
                           password: password,
+                          enabled: _enabled,
                         );
                       }
 
