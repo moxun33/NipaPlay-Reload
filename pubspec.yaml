@@ -178,9 +178,8 @@ flutter:
     - assets/web/canvaskit/
     - assets/web/canvaskit/chromium/
     - assets/web/icons/
+    - assets/web/bsearch/
     # ---------------------
-    # danmaku-web
-    - assets/danmaku-web/
     
   # GPU着色器文件
     

@@ -14,7 +14,7 @@ import 'package:flutter/foundation.dart';
 class WebServerService {
   static const String _enabledKey = 'web_server_enabled';
   static const String _portKey = 'web_server_port';
-  
+
   HttpServer? _server;
   int _port = 8080;
   bool _isRunning = false;
@@ -48,24 +48,33 @@ class WebServerService {
 
     try {
       // 静态文件服务
-      final webAppPath = p.join((await StorageService.getAppStorageDirectory()).path, 'web');
+      final webAppPath =
+          p.join((await StorageService.getAppStorageDirectory()).path, 'web');
       // 在启动服务器前，确保Web资源已解压
       await AssetHelper.extractWebAssets(webAppPath);
 
-      final staticHandler = createStaticHandler(webAppPath, defaultDocument: 'index.html');
+      final staticHandler =
+          createStaticHandler(webAppPath, defaultDocument: 'index.html');
 
-      final apiRouter = Router()
-        ..mount('/api/', _webApiService.handler);
+      // danmaku搜索服务
+      final bWebAppPath = p.join(
+          (await StorageService.getAppStorageDirectory()).path, 'bsearch');
+      // 在启动服务器前，确保Web资源已解压
+      await AssetHelper.extractWebAssets(bWebAppPath);
 
-      final cascade = Cascade()
-          .add(apiRouter.call)
-          .add(staticHandler);
+      final bStaticHandler =
+          createStaticHandler(bWebAppPath, defaultDocument: 'index.html');
+
+      final apiRouter = Router()..mount('/api/', _webApiService.handler);
+
+      final cascade =
+          Cascade().add(apiRouter.call).add(staticHandler).add(bStaticHandler);
 
       final handler = const Pipeline()
           .addMiddleware(corsHeaders())
           .addMiddleware(logRequests())
           .addHandler(cascade.handler);
-          
+
       _server = await shelf_io.serve(handler, '0.0.0.0', _port);
       _isRunning = true;
       print('Web server started on port ${_server!.port}');
@@ -87,7 +96,7 @@ class WebServerService {
       await saveSettings();
     }
   }
-  
+
   Future<List<String>> getAccessUrls() async {
     if (!_isRunning || _server == null) return [];
 
@@ -124,4 +133,4 @@ class WebServerService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_enabledKey, enabled);
   }
-} 
+}
