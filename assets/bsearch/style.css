@@ -1,0 +1,428 @@
+/* 全局样式重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 容器样式 */
+.container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* 头部样式 */
+header {
+    padding: 40px 0 20px;
+    text-align: center;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 30px;
+}
+
+/* 搜索框容器样式 */
+.search-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* 平台选择下拉菜单样式 */
+.platform-select {
+    padding: 12px 16px;
+    font-size: 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #fff;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.3s ease;
+    width: 120px;
+}
+
+.platform-select:hover,
+.platform-select:focus {
+    border-color: #409eff;
+    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+}
+
+/* 搜索输入框样式 */
+.search-input {
+    flex: 1;
+    padding: 12px 20px;
+    font-size: 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.3s ease;
+    min-width: 300px;
+}
+
+.search-input:hover,
+.search-input:focus {
+    border-color: #409eff;
+    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+}
+
+.search-input::placeholder {
+    color: #999;
+}
+
+/* 搜索按钮样式 */
+.search-btn {
+    padding: 12px 30px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    background-color: #409eff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.search-btn:hover {
+    background-color: #66b1ff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+}
+
+/* 弹幕下载区域样式 */
+.danmaku-download-section {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    text-align: left;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.danmaku-title {
+    margin-top: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.danmaku-description {
+    margin: 8px 0;
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+}
+
+.danmaku-steps {
+    margin: 12px 0;
+    padding-left: 20px;
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+}
+
+.danmaku-steps li {
+    margin-bottom: 6px;
+}
+
+.danmaku-url-container {
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.danmaku-url-label {
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+}
+
+.danmaku-url-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 15px;
+    font-size: 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.danmaku-url-input:hover,
+.danmaku-url-input:focus {
+    border-color: #409eff;
+    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
+}
+
+.danmaku-url-input::placeholder {
+    color: #999;
+    font-size: 13px;
+}
+
+.copy-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    background-color: #67c23a;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.copy-btn:hover {
+    background-color: #85ce61;
+    box-shadow: 0 4px 12px rgba(103, 194, 58, 0.2);
+}
+
+.copy-btn:active {
+    background-color: #5daf34;
+}
+
+.danmaku-base-url {
+    font-size: 13px;
+    color: #999;
+    margin-top: 10px;
+    word-break: break-all;
+}
+
+#combined-url {
+    font-family: 'Courier New', Courier, monospace;
+    color: #409eff;
+    word-break: break-all;
+}
+
+/* 主内容区域 */
+main {
+    flex: 1;
+    margin-top: 20px;
+}
+
+/* 动漫列表样式 */
+#bangumi-list {
+    margin-top: 40px;
+}
+
+#bangumi-list h2 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 30px;
+    text-align: center;
+    position: relative;
+}
+
+#bangumi-list h2::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, #409eff, #67c23a);
+    border-radius: 2px;
+}
+
+/* 标签容器样式 */
+.bangumi-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    padding: 20px;
+    background-color: #fafafa;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 动漫标签基础样式 */
+.bangumi-tag {
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 500;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-block;
+    background-color: #999;
+    border: 2px solid transparent;
+}
+
+/* 标签悬停效果 */
+.bangumi-tag:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* 标签点击效果 */
+.bangumi-tag:active {
+    transform: translateY(0);
+}
+
+/* 哔哩哔哩平台标签颜色 - 粉色主色调 */
+.bangumi-tag[data-platform="bilibili"] {
+    background-color: #FB7299;
+}
+
+/* 优酷平台标签颜色 - 橙色主色调 */
+.bangumi-tag[data-platform="youku"] {
+    background-color: #FF6700;
+}
+
+/* 腾讯视频平台标签颜色 - 蓝色主色调 */
+.bangumi-tag[data-platform="tencent"] {
+    background-color: #12B7F5;
+}
+
+/* 爱奇艺平台标签颜色 - 绿色主色调 */
+.bangumi-tag[data-platform="iqiyi"] {
+    background-color: #21C17A;
+}
+
+/* 未知平台标签颜色 */
+.bangumi-tag[data-platform="未知平台"] {
+    background-color: #999;
+    opacity: 0.8;
+}
+
+/* 页脚样式 */
+footer {
+    margin-top: 60px;
+    padding: 30px 0;
+    text-align: center;
+    color: #999;
+    font-size: 14px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    /* 搜索区域响应式 */
+    .search-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+    
+    .platform-select,
+    .search-input {
+        width: 100%;
+        min-width: unset;
+    }
+    
+    /* 弹幕下载区域响应式 */
+    .danmaku-download-section {
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .danmaku-title {
+        font-size: 16px;
+    }
+    
+    .danmaku-url-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .danmaku-url-label {
+        margin-bottom: 5px;
+    }
+    
+    .danmaku-url-input {
+        width: 100%;
+    }
+    
+    .copy-btn {
+        width: 100%;
+    }
+    
+    /* 动漫列表响应式 */
+    .bangumi-item {
+        width: 100%;
+        margin-right: 0;
+    }
+    
+    .bangumi-cover {
+        height: 300px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* 头部响应式 */
+    header {
+        padding: 20px 0 10px;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+        margin-bottom: 20px;
+    }
+    
+    .container {
+        padding: 0 15px;
+    }
+    
+    /* 弹幕下载区域移动端优化 */
+    .danmaku-steps {
+        padding-left: 18px;
+        font-size: 13px;
+    }
+    
+    .danmaku-url-input {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+    
+    .copy-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+    
+    .danmaku-base-url {
+        font-size: 12px;
+    }
+    
+    /* 动漫列表移动端优化 */
+    #bangumi-list h2 {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+    }
+    
+    .bangumi-container {
+        gap: 20px;
+    }
+    
+    .bangumi-cover {
+        height: 280px;
+    }
+}

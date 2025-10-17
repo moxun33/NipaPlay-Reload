@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>动漫搜索工具</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="search-container">
+          <select id="platform-select" class="platform-select">
+            <option value="youku">优酷</option>
+            <option value="tencent">腾讯视频</option>
+            <option value="bilibili">哔哩哔哩</option>
+            <option value="iqiyi">爱奇艺</option>
+          </select>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="请输入动漫名称"
+            class="search-input"
+          />
+          <button id="search-btn" class="search-btn">搜索</button>
+        </div>
+        <div class="danmaku-download-section">
+            <h3 class="danmaku-title">弹幕下载功能 【弹幕代理: <span id="combined-url">https://fc.lyz05.cn/?url=</span>】</h3>
+            <ul class="danmaku-steps">
+                <li>1. 从新标签页的搜索结果中找到并打开您需要的剧集</li>
+                <li>2. 复制该剧集页面的完整URL地址</li>
+                <li>3. 将URL粘贴到下方输入框中</li>
+                <li>4. 点击复制按钮获取弹幕下载链接</li>
+            </ul>
+            <div class="danmaku-url-container">
+                <span class="danmaku-url-label">请粘贴剧集URL：</span>
+                <input type="text" id="danmaku-url-input" class="danmaku-url-input" placeholder="例如: https://www.bilibili.com/bangumi/play/ep123456" oninput="updateCombinedUrl()">
+                <button class="copy-btn" id="copy-btn" onclick="copyCombinedUrl()">复制</button>
+            </div>
+            
+        </div>
+      </header>
+      <main>
+        <div id="bangumi-list">
+          <h2>动漫列表</h2>
+          <div class="bangumi-container"></div>
+        </div>
+      </main>
+      <footer>
+        <p>© 2025 动漫弹幕搜索工具</p>
+      </footer>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
+{
