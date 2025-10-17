@@ -24,35 +24,27 @@
           />
           <button id="search-btn" class="search-btn">搜索</button>
         </div>
-        <div>
-          拼接弹幕URL：<span id="combined-url">https://fc.lyz05.cn/?url=</span
-          ><input
-            id="danmaku-url-input"
-            type="text"
-            placeholder="请输入视频URL"
-            oninput="updateCombinedUrl()"
-          /><button id="copy-btn" class="copy-btn" onclick="copyCombinedUrl()">
-            复制
-          </button>
+        <div class="danmaku-download-section">
+            <h3 class="danmaku-title">弹幕下载功能 【弹幕代理: <span id="combined-url">https://fc.lyz05.cn/?url=</span>】</h3>
+            <ul class="danmaku-steps">
+                <li>1. 从新标签页的搜索结果中找到并打开您需要的剧集</li>
+                <li>2. 复制该剧集页面的完整URL地址</li>
+                <li>3. 将URL粘贴到下方输入框中</li>
+                <li>4. 点击复制按钮获取弹幕下载链接</li>
+            </ul>
+            <div class="danmaku-url-container">
+                <span class="danmaku-url-label">请粘贴剧集URL：</span>
+                <input type="text" id="danmaku-url-input" class="danmaku-url-input" placeholder="例如: https://www.bilibili.com/bangumi/play/ep123456" oninput="updateCombinedUrl()">
+                <button class="copy-btn" id="copy-btn" onclick="copyCombinedUrl()">复制</button>
+            </div>
+            
         </div>
       </header>
       <main>
-        <!-- 无搜索结果提示 -->
-        <div id="no-results" class="no-results">
-          <h3>动漫列表</h3>
-          <p>点击动漫名称进行搜索</p>
-          <div id="bangumi-list" class="bangumi-list">
-            <!-- 动漫列表将通过JavaScript动态生成 -->
-          </div>
+        <div id="bangumi-list">
+          <h2>动漫列表</h2>
+          <div class="bangumi-container"></div>
         </div>
-
-        <!-- 搜索结果iframe -->
-        <iframe
-          id="result-frame"
-          class="result-frame"
-          src="about:blank"
-          frameborder="0"
-        ></iframe>
       </main>
       <footer>
         <p>© 2025 动漫弹幕搜索工具</p>
