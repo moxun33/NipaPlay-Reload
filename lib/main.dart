@@ -48,6 +48,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:nipaplay/services/debug_log_service.dart';
 import 'package:nipaplay/services/file_association_service.dart';
 import 'package:nipaplay/danmaku_abstraction/danmaku_kernel_factory.dart';
+import 'package:nipaplay/services/web_bsearch_server_service.dart';
 import 'package:nipaplay/widgets/nipaplay_theme/splash_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nipaplay/services/playback_service.dart';
@@ -434,6 +435,26 @@ void main(List<String> args) async {
 
     // 初始化系统资源监控（所有平台）
     SystemResourceMonitor.initialize();
+    
+    // 初始化并启动bsearch Web服务
+    try {
+      // 注意：这里需要导入我们创建的服务类
+      final bsearchService = WebBSearchServerService();
+      // 在应用启动后启动服务，但不阻塞主UI线程
+      Future.microtask(() async {
+        try {
+          await bsearchService.startServer();
+          if (bsearchService.isRunning) {
+            final accessUrls = await bsearchService.getAccessUrls();
+            debugPrint('bsearch Web服务已启动，访问地址: $accessUrls');
+          }
+        } catch (e) {
+          debugPrint('启动bsearch Web服务失败: $e');
+        }
+      });
+    } catch (e) {
+      debugPrint('初始化bsearch Web服务失败: $e');
+    }
 
     if (globals.isDesktop) {
       windowManager.ensureInitialized();

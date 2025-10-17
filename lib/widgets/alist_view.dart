@@ -436,7 +436,10 @@ class _AlistViewState extends State<AlistView> {
   }
 
   String _formatDateTime(DateTime dateTime) {
+    // 将UTC时间转换为当地时区时间
+    final localDateTime = dateTime.toLocal();
+    
     // 显示日期 时分秒
-    return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
+    return '${localDateTime.year}-${localDateTime.month.toString().padLeft(2, '0')}-${localDateTime.day.toString().padLeft(2, '0')} ${localDateTime.hour.toString().padLeft(2, '0')}:${localDateTime.minute.toString().padLeft(2, '0')}:${localDateTime.second.toString().padLeft(2, '0')}';
   }
 }

@@ -8,6 +8,8 @@ import 'dart:convert';
 import 'dart:io' as io;
 import 'package:file_selector/file_selector.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
+import 'package:nipaplay/services/web_bsearch_server_service.dart';
 
 class DanmakuTracksMenu extends StatefulWidget {
   final VoidCallback onClose;
@@ -33,6 +35,27 @@ class _DanmakuTracksMenuState extends State<DanmakuTracksMenu> {
     _remoteUrlController.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  // 打开视频网站搜索
+  Future<void> _openVideoWebsiteSearch() async {
+    try {
+      final webBSearchServerService = WebBSearchServerService();
+      await webBSearchServerService.startServer();
+      
+      final url = Uri.parse('http://localhost:34568');
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          BlurSnackBar.show(context, '无法打开默认浏览器');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        BlurSnackBar.show(context, '启动搜索服务失败: $e');
+      }
+    }
   }
 
   // 加载本地JSON弹幕文件
@@ -708,6 +731,17 @@ class _DanmakuTracksMenuState extends State<DanmakuTracksMenu> {
                   onTap: _toggleRemoteUrlInput,
                   padding:
                       const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  margin: const EdgeInsets.symmetric(horizontal: 0),
+                  expandHorizontally: true,
+                  borderRadius: BorderRadius.zero,
+                ),
+                const SizedBox(height: 12),
+                // 视频网站搜索按钮
+                BlurButton(
+                  icon: Icons.search_outlined,
+                  text: "视频网站搜索",
+                  onTap: _openVideoWebsiteSearch,
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   margin: const EdgeInsets.symmetric(horizontal: 0),
                   expandHorizontally: true,
                   borderRadius: BorderRadius.zero,

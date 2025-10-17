@@ -55,20 +55,10 @@ class WebServerService {
 
       final staticHandler =
           createStaticHandler(webAppPath, defaultDocument: 'index.html');
-
-      // danmaku搜索服务
-      final bWebAppPath = p.join(
-          (await StorageService.getAppStorageDirectory()).path, 'bsearch');
-      // 在启动服务器前，确保Web资源已解压
-      await AssetHelper.extractWebAssets(bWebAppPath);
-
-      final bStaticHandler =
-          createStaticHandler(bWebAppPath, defaultDocument: 'index.html');
-
       final apiRouter = Router()..mount('/api/', _webApiService.handler);
 
       final cascade =
-          Cascade().add(apiRouter.call).add(staticHandler).add(bStaticHandler);
+          Cascade().add(apiRouter.call).add(staticHandler);
 
       final handler = const Pipeline()
           .addMiddleware(corsHeaders())
