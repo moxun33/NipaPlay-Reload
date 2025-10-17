@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart' as material;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:nipaplay/widgets/user_activity/fluent_user_activity.dart';
 import 'package:nipaplay/widgets/fluent_ui/fluent_info_bar.dart';
+import 'package:nipaplay/widgets/nipaplay_theme/blur_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'account_controller.dart';
 
 /// Fluent UI版本的账号页面
@@ -132,7 +135,7 @@ class _FluentAccountPageState extends State<FluentAccountPage>
                 Navigator.of(context).pop();
               }
             },
-            child: isLoading 
+            child: isLoading
                 ? const SizedBox(
                     width: 16,
                     height: 16,
@@ -142,6 +145,81 @@ class _FluentAccountPageState extends State<FluentAccountPage>
           ),
         ],
       ),
+    );
+  }
+
+  @override
+  void showDeleteAccountDialog(String deleteAccountUrl) {
+    BlurDialog.show(
+      context: context,
+      title: '账号注销确认',
+      contentWidget: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '警告：账号注销是不可逆操作！',
+            style: TextStyle(
+              color: material.Colors.red,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text('注销后将：'),
+          const SizedBox(height: 8),
+          const Text(
+            '• 永久删除您的弹弹play账号\n'
+            '• 清除所有个人数据和收藏\n'
+            '• 无法恢复已发送的弹幕\n'
+            '• 失去所有积分和等级',
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '点击"继续注销"将在浏览器中打开注销页面，请在页面中完成最终确认。',
+            style: TextStyle(
+              color: material.Colors.orange,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        Button(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        FilledButton(
+          style: ButtonStyle(
+            backgroundColor: ButtonState.all(material.Colors.red),
+          ),
+          onPressed: () async {
+            Navigator.of(context).pop();
+            try {
+              // Web和其他平台分别处理URL打开
+              if (kIsWeb) {
+                // Web平台暂时显示URL让用户手动复制
+                showMessage('请复制以下链接到浏览器中打开：$deleteAccountUrl');
+              } else {
+                // 移动端和桌面端使用url_launcher
+                final uri = Uri.parse(deleteAccountUrl);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(
+                    uri,
+                    mode: LaunchMode.externalApplication,
+                  );
+                } else {
+                  showMessage('无法打开注销页面');
+                }
+              }
+            } catch (e) {
+              showMessage('打开注销页面失败: $e');
+            }
+          },
+          child: const Text(
+            '继续注销',
+            style: TextStyle(color: material.Colors.white),
+          ),
+        ),
+      ],
     );
   }
 
@@ -295,6 +373,35 @@ class _FluentAccountPageState extends State<FluentAccountPage>
                       Icon(FluentIcons.sign_out),
                       SizedBox(width: 8),
                       Text('退出登录'),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 账号注销按钮
+                Button(
+                  onPressed: isLoading ? null : startDeleteAccount,
+                  style: ButtonStyle(
+                    backgroundColor: ButtonState.resolveWith((states) {
+                      if (states.isDisabled) return material.Colors.grey.withOpacity(0.3);
+                      if (states.isPressed) return material.Colors.red.shade700;
+                      if (states.isHovered) return material.Colors.red.shade600;
+                      return material.Colors.red.withOpacity(0.1);
+                    }),
+                    foregroundColor: ButtonState.all(material.Colors.red),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isLoading)
+                        const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: ProgressRing(strokeWidth: 2),
+                        )
+                      else
+                        const Icon(FluentIcons.delete),
+                      const SizedBox(width: 8),
+                      Text(isLoading ? '处理中...' : '注销账号'),
                     ],
                   ),
                 ),
