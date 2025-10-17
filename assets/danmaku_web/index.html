@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>动漫搜索工具</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="search-container">
+          <select id="platform-select" class="platform-select">
+            <option value="youku">优酷</option>
+            <option value="tencent">腾讯视频</option>
+            <option value="bilibili">哔哩哔哩</option>
+            <option value="iqiyi">爱奇艺</option>
+          </select>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="请输入动漫名称"
+            class="search-input"
+          />
+          <button id="search-btn" class="search-btn">搜索</button>
+        </div>
+        <div>
+          拼接弹幕URL：<span id="combined-url">https://fc.lyz05.cn/?url=</span
+          ><input
+            id="danmaku-url-input"
+            type="text"
+            placeholder="请输入视频URL"
+            oninput="updateCombinedUrl()"
+          /><button id="copy-btn" class="copy-btn" onclick="copyCombinedUrl()">
+            复制
+          </button>
+        </div>
+      </header>
+      <main>
+        <!-- 无搜索结果提示 -->
+        <div id="no-results" class="no-results">
+          <h3>动漫列表</h3>
+          <p>点击动漫名称进行搜索</p>
+          <div id="bangumi-list" class="bangumi-list">
+            <!-- 动漫列表将通过JavaScript动态生成 -->
+          </div>
+        </div>
+
+        <!-- 搜索结果iframe -->
+        <iframe
+          id="result-frame"
+          class="result-frame"
+          src="about:blank"
+          frameborder="0"
+        ></iframe>
+      </main>
+      <footer>
+        <p>© 2025 动漫弹幕搜索工具</p>
+      </footer>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
+{
