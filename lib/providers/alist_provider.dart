@@ -184,12 +184,34 @@ class AlistProvider extends ChangeNotifier {
         password: password,
       );
 
-      // 按文件夹优先，然后按名称排序
-      /*   files.sort((a, b) {
+      // 按文件夹优先，然后尝试按剧集序号升序排列
+      files.sort((a, b) {
+        // 文件夹优先
         if (a.isDir && !b.isDir) return -1;
         if (!a.isDir && b.isDir) return 1;
+        
+        // 尝试从文件名中提取数字序号进行排序
+        if (!a.isDir && !b.isDir) {
+          // 提取文件名中的数字
+          final numRegex = RegExp(r'(\d+)');
+          final aMatches = numRegex.allMatches(a.name).map((m) => m.group(1)).toList();
+          final bMatches = numRegex.allMatches(b.name).map((m) => m.group(1)).toList();
+          
+          // 如果两个文件名都包含数字，使用第一个数字作为排序依据
+          if (aMatches.isNotEmpty && bMatches.isNotEmpty) {
+            try {
+              final aNum = int.parse(aMatches.first!);
+              final bNum = int.parse(bMatches.first!);
+              return aNum.compareTo(bNum);
+            } catch (_) {
+              // 数字解析失败，回退到名称排序
+            }
+          }
+        }
+        
+        // 回退到名称排序
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      }); */
+      });
 
       _currentFiles = files;
       _isConnected = true;

@@ -23,12 +23,20 @@ class _AlistViewState extends State<AlistView> {
   bool _isInitializing = true;
   SharedPreferences? _prefs;
   String _lastVisitedPath = '/'; // 默认根目录
+  TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _alistProvider = Provider.of<AlistProvider>(context, listen: false);
     _initializeApp();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   // 初始化应用，确保_loadPreferences完成后再执行_initializeView
@@ -168,86 +176,257 @@ class _AlistViewState extends State<AlistView> {
           color: const Color(0xFF2F2F2F),
           child: Column(
             children: [
-              // 路径导航栏
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border(bottom: BorderSide(color: theme.dividerColor)),
-                  color: const Color(0xFF3A3A3A),
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: () async {
-                        if (provider.currentPath != '/') {
-                          await provider.navigateUp();
-                          // 缓存返回后的路径
-                          await _cacheCurrentPath(provider.currentPath);
-                        }
-                      },
-                      tooltip: '返回上级目录',
-                      splashRadius: 20,
-                      constraints: const BoxConstraints(),
+              // 响应式路径导航栏和搜索框
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // 确定是否为移动设备或小屏幕（宽度小于600px）
+                  bool isMobile = MediaQuery.of(context).size.width < 600;
+
+                  // 搜索框组件
+                  Widget searchBox = Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2F2F2F),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: theme.dividerColor),
                     ),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2F2F2F),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: theme.dividerColor),
+                    child: Row(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                          child:
+                              Icon(Icons.search, color: Colors.grey, size: 18),
                         ),
-                        child: Row(
-                          children: provider.currentPath
-                              .split('/')
-                              .asMap()
-                              .entries
-                              .map((entry) {
-                            final index = entry.key;
-                            final pathSegment = entry.value;
-                            // 拼接当前层级的完整路径
-                            final fullPath = index == 0
-                                ? '/'
-                                : provider.currentPath
-                                    .split('/')
-                                    .sublist(0, index + 1)
-                                    .join('/');
-                            return GestureDetector(
-                              onTap: () async {
-                                await provider.navigateTo(fullPath);
-                                await _cacheCurrentPath(fullPath);
-                              },
-                              child: Row(
-                                children: [
-                                  if (index != 0)
-                                    Text('/',
-                                        style: TextStyle(
-                                            color: theme
-                                                .textTheme.bodyMedium?.color)),
-                                  Text(
-                                    pathSegment,
-                                    style: TextStyle(
-                                      color: theme.textTheme.bodyMedium?.color,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 14),
+                            decoration: const InputDecoration(
+                              hintText: '搜索文件名',
+                              hintStyle:
+                                  TextStyle(color: Colors.grey, fontSize: 14),
+                              border: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                  vertical: 1), // 进一步减小垂直内边距以降低高度
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value.toLowerCase();
+                              });
+                            },
+                          ),
+                        ),
+                        if (_searchController.text.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.clear,
+                                color: Colors.grey, size: 16),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                            splashRadius: 16,
+                          ),
+                      ],
+                    ),
+                  );
+
+                  if (isMobile) {
+                    // 移动端布局：路径导航和搜索框分行显示
+                    return Column(
+                      children: [
+                        // 路径导航栏
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border(
+                                bottom: BorderSide(color: theme.dividerColor)),
+                            color: const Color(0xFF3A3A3A),
+                          ),
+                          child: Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.arrow_back),
+                                onPressed: () async {
+                                  if (provider.currentPath != '/') {
+                                    await provider.navigateUp();
+                                    // 缓存返回后的路径
+                                    await _cacheCurrentPath(
+                                        provider.currentPath);
+                                  }
+                                },
+                                tooltip: '返回上级目录',
+                                splashRadius: 20,
+                                constraints: const BoxConstraints(),
                               ),
-                            );
-                          }).toList(),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF2F2F2F),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border:
+                                        Border.all(color: theme.dividerColor),
+                                  ),
+                                  child: Row(
+                                    children: provider.currentPath
+                                        .split('/')
+                                        .asMap()
+                                        .entries
+                                        .map((entry) {
+                                      final index = entry.key;
+                                      final pathSegment = entry.value;
+                                      // 拼接当前层级的完整路径
+                                      final fullPath = index == 0
+                                          ? '/'
+                                          : provider.currentPath
+                                              .split('/')
+                                              .sublist(0, index + 1)
+                                              .join('/');
+                                      return GestureDetector(
+                                        onTap: () async {
+                                          await provider.navigateTo(fullPath);
+                                          await _cacheCurrentPath(fullPath);
+                                        },
+                                        child: Row(
+                                          children: [
+                                            if (index != 0)
+                                              Text('/',
+                                                  style: TextStyle(
+                                                      color: theme.textTheme
+                                                          .bodyMedium?.color)),
+                                            Text(
+                                              pathSegment,
+                                              style: TextStyle(
+                                                color: theme.textTheme
+                                                    .bodyMedium?.color,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.refresh),
+                                onPressed: () =>
+                                    provider.refreshCurrentDirectory(),
+                                tooltip: '刷新',
+                                splashRadius: 20,
+                              ),
+                            ],
+                          ),
                         ),
+                        // 搜索框在下一行
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border(
+                                bottom: BorderSide(color: theme.dividerColor)),
+                            color: const Color(0xFF3A3A3A),
+                          ),
+                          child: searchBox,
+                        ),
+                      ],
+                    );
+                  } else {
+                    // 桌面端布局：搜索框与刷新按钮在同一行
+                    return Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border(
+                            bottom: BorderSide(color: theme.dividerColor)),
+                        color: const Color(0xFF3A3A3A),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh),
-                      onPressed: () => provider.refreshCurrentDirectory(),
-                      tooltip: '刷新',
-                      splashRadius: 20,
-                    ),
-                  ],
-                ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back),
+                            onPressed: () async {
+                              if (provider.currentPath != '/') {
+                                await provider.navigateUp();
+                                // 缓存返回后的路径
+                                await _cacheCurrentPath(provider.currentPath);
+                              }
+                            },
+                            tooltip: '返回上级目录',
+                            splashRadius: 20,
+                            constraints: const BoxConstraints(),
+                          ),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2F2F2F),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: theme.dividerColor),
+                              ),
+                              child: Row(
+                                children: provider.currentPath
+                                    .split('/')
+                                    .asMap()
+                                    .entries
+                                    .map((entry) {
+                                  final index = entry.key;
+                                  final pathSegment = entry.value;
+                                  // 拼接当前层级的完整路径
+                                  final fullPath = index == 0
+                                      ? '/'
+                                      : provider.currentPath
+                                          .split('/')
+                                          .sublist(0, index + 1)
+                                          .join('/');
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      await provider.navigateTo(fullPath);
+                                      await _cacheCurrentPath(fullPath);
+                                    },
+                                    child: Row(
+                                      children: [
+                                        if (index != 0)
+                                          Text('/',
+                                              style: TextStyle(
+                                                  color: theme.textTheme
+                                                      .bodyMedium?.color)),
+                                        Text(
+                                          pathSegment,
+                                          style: TextStyle(
+                                            color: theme
+                                                .textTheme.bodyMedium?.color,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // 搜索框（固定宽度或最小宽度）
+                          SizedBox(
+                            width: 300,
+                            child: searchBox,
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.refresh),
+                            onPressed: () => provider.refreshCurrentDirectory(),
+                            tooltip: '刷新',
+                            splashRadius: 20,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                },
               ),
               // 错误提示
               if (provider.errorMessage != null)
@@ -255,7 +434,7 @@ class _AlistViewState extends State<AlistView> {
                   duration: const Duration(milliseconds: 300),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade900.withValues(alpha: 0.3),
+                    color: Colors.red.shade900.withOpacity(0.3),
                     border:
                         Border(bottom: BorderSide(color: Colors.red.shade700)),
                   ),
@@ -289,132 +468,38 @@ class _AlistViewState extends State<AlistView> {
                 ),
               // 文件列表 - 修改为ListView
               Expanded(
-                child: provider.currentFiles.isEmpty && !provider.isLoading
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF3A3A3A),
-                                borderRadius: BorderRadius.circular(24),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.3),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(Icons.folder_off,
-                                  size: 60, color: theme.hintColor),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              '当前目录为空',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                color: theme.hintColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(8),
-                        itemCount: provider.currentFiles.length,
-                        itemBuilder: (context, index) {
-                          final file = provider.currentFiles[index];
-                          return Card(
-                            elevation: 3,
-                            margin: const EdgeInsets.symmetric(vertical: 6),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            color: const Color(0xFF3A3A3A),
-                            child: ListTile(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              onTap: () async {
-                                if (file.isDir) {
-                                  final newPath =
-                                      '${provider.currentPath == '/' ? '' : provider.currentPath}/${file.name}';
-                                  await provider.navigateTo(newPath);
-                                  // 缓存新路径
-                                  await _cacheCurrentPath(newPath);
-                                } else if (file.isVideo) {
-                                  try {
-                                    final playableItem =
-                                        provider.buildPlayableItem(file);
-                                    widget.onPlayEpisode(playableItem);
-                                  } catch (e) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('播放失败: $e'),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
-                              leading: Container(
-                                padding: const EdgeInsets.all(10),
+                  child: provider.currentFiles.isEmpty && !provider.isLoading
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(24),
                                 decoration: BoxDecoration(
-                                  color: file.isDir
-                                      ? const Color(0xFF96F7E4)
-                                          .withValues(alpha: 0.1)
-                                      : file.isVideo
-                                          ? Colors.red.shade900
-                                              .withValues(alpha: 0.1)
-                                          : Colors.grey.shade800,
-                                  borderRadius: BorderRadius.circular(10),
+                                  color: const Color(0xFF3A3A3A),
+                                  borderRadius: BorderRadius.circular(24),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.3),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
-                                child: Icon(
-                                  file.isDir
-                                      ? Icons.folder
-                                      : file.isVideo
-                                          ? Icons.video_file
-                                          : Icons.insert_drive_file,
-                                  size: 24,
-                                  color: file.isDir
-                                      ? const Color(0xFF96F7E4)
-                                      : file.isVideo
-                                          ? Colors.red
-                                          : Colors.grey,
+                                child: Icon(Icons.folder_off,
+                                    size: 60, color: theme.hintColor),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                '当前目录为空',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  color: theme.hintColor,
                                 ),
                               ),
-                              title: Text(
-                                file.name,
-                                style: theme.textTheme.bodyMedium,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              subtitle: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    file.isDir
-                                        ? '文件夹'
-                                        : _formatFileSize(file.size),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.hintColor,
-                                    ),
-                                  ),
-                                  Text(
-                                    _formatDateTime(file.modified),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.hintColor,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
+                            ],
+                          ),
+                        )
+                      : _buildFileList(provider, theme)),
             ],
           ),
         );
@@ -440,5 +525,162 @@ class _AlistViewState extends State<AlistView> {
 
     // 显示日期 时分秒
     return '${localDateTime.year}-${localDateTime.month.toString().padLeft(2, '0')}-${localDateTime.day.toString().padLeft(2, '0')} ${localDateTime.hour.toString().padLeft(2, '0')}:${localDateTime.minute.toString().padLeft(2, '0')}:${localDateTime.second.toString().padLeft(2, '0')}';
+  }
+
+  // 根据搜索查询构建过滤后的文件列表
+  Widget _buildFileList(AlistProvider provider, ThemeData theme) {
+    // 根据搜索条件过滤文件
+    final filteredFiles = _searchQuery.isEmpty
+        ? provider.currentFiles
+        : provider.currentFiles
+            .where((file) => file.name.toLowerCase().contains(_searchQuery))
+            .toList();
+
+    if (filteredFiles.isEmpty && !provider.isLoading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3A3A3A),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.search_off, size: 60, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '没有找到匹配的文件',
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: theme.hintColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '尝试更改搜索关键词',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.hintColor,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(8),
+      itemCount: filteredFiles.length,
+      itemBuilder: (context, index) {
+        final file = filteredFiles[index];
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(vertical: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          color: const Color(0xFF3A3A3A),
+          child: GestureDetector(
+            onTap: () async {
+              if (file.isDir) {
+                final newPath =
+                    '${provider.currentPath == '/' ? '' : provider.currentPath}/${file.name}';
+                await provider.navigateTo(newPath);
+                // 缓存新路径
+                await _cacheCurrentPath(newPath);
+              } else if (file.isVideo) {
+                try {
+                  final playableItem = provider.buildPlayableItem(file);
+                  widget.onPlayEpisode(playableItem);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('播放失败: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Row(
+                children: [
+                  // 图标部分
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: file.isDir
+                          ? const Color(0xFF96F7E4).withOpacity(0.1)
+                          : file.isVideo
+                              ? Colors.red.shade900.withOpacity(0.1)
+                              : Colors.grey.shade800,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Icon(
+                      file.isDir
+                          ? Icons.folder
+                          : file.isVideo
+                              ? Icons.video_file
+                              : Icons.insert_drive_file,
+                      size: 16,
+                      color: file.isDir
+                          ? const Color(0xFF96F7E4)
+                          : file.isVideo
+                              ? Colors.red
+                              : Colors.grey,
+                    ),
+                  ),
+
+                  // 主要内容部分
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // 文件名
+                        Text(
+                          file.name,
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        // 文件信息
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              file.isDir ? '文件夹' : _formatFileSize(file.size),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.hintColor,
+                                fontSize: 11,
+                              ),
+                            ),
+                            Text(
+                              _formatDateTime(file.modified),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.hintColor, fontSize: 11),
+                              overflow: TextOverflow.ellipsis,
+                            )
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
