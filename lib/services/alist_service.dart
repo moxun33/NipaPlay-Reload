@@ -20,7 +20,9 @@ class AlistService {
 
   List<AlistHost> get hosts => List.unmodifiable(_hosts);
   List<String> get activeHostIds => List.unmodifiable(_activeHostIds);
-  List<AlistHost> get activeHosts => _hosts.where((host) => host.enabled && _activeHostIds.contains(host.id)).toList();
+  List<AlistHost> get activeHosts => _hosts
+      .where((host) => host.enabled && _activeHostIds.contains(host.id))
+      .toList();
   AlistHost? get activeHost {
     if (_activeHostIds.isEmpty) return null;
     try {
@@ -52,7 +54,8 @@ class AlistService {
       // 加载多个激活主机
       if (savedActiveHosts != null && savedActiveHosts.isNotEmpty) {
         try {
-          final List<String> activeIds = List<String>.from(json.decode(savedActiveHosts));
+          final List<String> activeIds =
+              List<String>.from(json.decode(savedActiveHosts));
           _activeHostIds.clear();
           for (final id in activeIds) {
             if (_hosts.any((element) => element.id == id)) {
@@ -65,7 +68,8 @@ class AlistService {
       }
       // 兼容旧版本的单激活主机配置
       final savedActiveHost = prefs.getString('alist_active_host');
-      if (savedActiveHost != null && _activeHostIds.isEmpty &&
+      if (savedActiveHost != null &&
+          _activeHostIds.isEmpty &&
           _hosts.any((element) => element.id == savedActiveHost)) {
         _activeHostIds.add(savedActiveHost);
         // 删除旧配置
@@ -90,7 +94,12 @@ class AlistService {
   }
 
   // 添加新的AList服务器配置
-  Future<AlistHost> addHost({required String displayName, required String baseUrl, String username = '', String password = '', bool enabled = true}) async {
+  Future<AlistHost> addHost(
+      {required String displayName,
+      required String baseUrl,
+      String username = '',
+      String password = '',
+      bool enabled = true}) async {
     final normalizedUrl = _normalizeBaseUrl(baseUrl);
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final host = AlistHost(
@@ -328,6 +337,7 @@ class AlistService {
     }
 
     try {
+      path = Uri.decodeComponent(path);
       final token = await _ensureValidToken(host);
       final uri = Uri.parse('${host.baseUrl}/api/fs/list');
 
@@ -336,7 +346,7 @@ class AlistService {
         // 构建请求头，对于匿名访问不添加Authorization头
         final headers = <String, String>{
           'Content-Type': 'application/json',
-          'User-Agent': 'NipaPlay/1.0',
+          'User-Agent': 'NipaPlay/999.1.0',
         };
 
         // 只有当token不为空时才添加Authorization头
@@ -360,13 +370,14 @@ class AlistService {
 
         if (response.statusCode != 200) {
           throw Exception(
-              '获取文件列表失败: HTTP ${response.statusCode}, ${response.body}');
+              '获取文件列表失败: HTTP ${response.statusCode}, ${response.body} 路径: $path');
         }
 
         final fileListResponse =
             AlistFileListResponse.fromJson(json.decode(response.body));
         if (fileListResponse.code != 200) {
-          throw Exception('获取文件列表失败: ${fileListResponse.message}');
+          throw Exception(
+              '获取文件列表失败: ${fileListResponse.message} [ 路径: $path ]');
         }
 
         // 更新主机状态为在线
@@ -429,7 +440,7 @@ class AlistService {
   // 创建HttpClient实例
   HttpClient _createHttpClient(Uri uri) {
     final httpClient = HttpClient();
-    httpClient.userAgent = 'NipaPlay/1.0';
+    httpClient.userAgent = 'NipaPlay/999.1.0';
     httpClient.autoUncompress = true; // 启用自动解压响应
     if (_shouldBypassProxy(uri.host)) {
       httpClient.findProxy = (_) => 'DIRECT';
