@@ -9,10 +9,10 @@ class AlistView extends StatefulWidget {
   final String? hostId; // 可选参数，如果提供则显示特定的AList服务器
 
   const AlistView({
-    Key? key,
+    super.key,
     required this.onPlayEpisode,
     this.hostId,
-  }) : super(key: key);
+  });
 
   @override
   _AlistViewState createState() => _AlistViewState();
@@ -65,10 +65,9 @@ class _AlistViewState extends State<AlistView> {
         await _alistProvider.initialize();
       }
 
-      // 如果提供了hostId，确保它是活动的
-      if (widget.hostId != null &&
-          widget.hostId != _alistProvider.activeHostId) {
-        await _alistProvider.setActiveHost(widget.hostId!);
+      // 如果传入了hostId，使用该主机
+      if (widget.hostId != null) {
+        _alistProvider.selectHostById(widget.hostId!);
       }
 
       // 如果当前没有连接的服务器但有活动服务器，尝试连接
@@ -438,7 +437,7 @@ class _AlistViewState extends State<AlistView> {
   String _formatDateTime(DateTime dateTime) {
     // 将UTC时间转换为当地时区时间
     final localDateTime = dateTime.toLocal();
-    
+
     // 显示日期 时分秒
     return '${localDateTime.year}-${localDateTime.month.toString().padLeft(2, '0')}-${localDateTime.day.toString().padLeft(2, '0')} ${localDateTime.hour.toString().padLeft(2, '0')}:${localDateTime.minute.toString().padLeft(2, '0')}:${localDateTime.second.toString().padLeft(2, '0')}';
   }

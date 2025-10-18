@@ -422,7 +422,7 @@ class _MediaLibraryTabsState extends State<_MediaLibraryTabs>
         final currentEmbyConnectionState = embyProvider.isConnected;
         final currentSharedState = sharedProvider.hosts.isNotEmpty;
         final currentAlistHosts =
-            alistProvider.hosts.where((host) => host.enabled && host.isOnline).toList();
+            alistProvider.hosts.where((host) => host.enabled).toList();
         final currentAlistHostIds =
             currentAlistHosts.map((host) => host.id).toList();
 

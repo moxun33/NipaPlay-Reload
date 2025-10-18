@@ -15,21 +15,47 @@ class AlistService {
 
   // 用于存储和管理AList服务器配置
   final List<AlistHost> _hosts = [];
-  final List<String> _activeHostIds = []; // 修改为支持多个激活
   bool _isInitializing = true;
 
   List<AlistHost> get hosts => List.unmodifiable(_hosts);
-  List<String> get activeHostIds => List.unmodifiable(_activeHostIds);
-  List<AlistHost> get activeHosts => _hosts
-      .where((host) => host.enabled && _activeHostIds.contains(host.id))
-      .toList();
+  List<AlistHost> get activeHosts =>
+      _hosts.where((host) => host.enabled).toList();
+  // 用于存储当前选中的主机ID，null表示使用默认的第一个启用的主机
+  String? _selectedHostId;
+
+  // 获取当前选中的主机，如果没有选中则返回第一个启用的主机
   AlistHost? get activeHost {
-    if (_activeHostIds.isEmpty) return null;
+    // 如果有选中的主机ID，先尝试返回该主机（无论是否启用）
+    if (_selectedHostId != null && _hosts.isNotEmpty) {
+      final selectedHost = _hosts.firstWhere(
+          (host) => host.id == _selectedHostId,
+          orElse: () => _hosts[0]);
+      return selectedHost;
+    }
+
+    // 否则返回第一个启用的主机
     try {
-      return _hosts.firstWhere((host) => _activeHostIds.contains(host.id));
+      return _hosts.firstWhere((host) => host.enabled);
     } catch (_) {
       return null;
     }
+  }
+
+  // 根据ID选择要使用的主机
+  void selectHostById(String hostId) {
+    _selectedHostId = hostId;
+  }
+
+  // 取消选择特定主机，回到默认行为
+  void clearSelectedHost() {
+    _selectedHostId = null;
+  }
+
+  // 根据ID获取主机
+  AlistHost? getHostById(String hostId) {
+    if (_hosts.isEmpty) return null;
+    return _hosts.firstWhere((host) => host.id == hostId,
+        orElse: () => _hosts[0]);
   }
 
   bool get isInitializing => _isInitializing;
@@ -44,37 +70,15 @@ class AlistService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final rawHosts = prefs.getString('alist_hosts');
-      final savedActiveHosts = prefs.getString('alist_active_hosts');
       if (rawHosts != null && rawHosts.isNotEmpty) {
         final storedHosts = AlistHost.decodeList(rawHosts);
         _hosts
           ..clear()
           ..addAll(storedHosts);
       }
-      // 加载多个激活主机
-      if (savedActiveHosts != null && savedActiveHosts.isNotEmpty) {
-        try {
-          final List<String> activeIds =
-              List<String>.from(json.decode(savedActiveHosts));
-          _activeHostIds.clear();
-          for (final id in activeIds) {
-            if (_hosts.any((element) => element.id == id)) {
-              _activeHostIds.add(id);
-            }
-          }
-        } catch (e) {
-          debugPrint('解析激活主机列表失败: $e');
-        }
-      }
-      // 兼容旧版本的单激活主机配置
-      final savedActiveHost = prefs.getString('alist_active_host');
-      if (savedActiveHost != null &&
-          _activeHostIds.isEmpty &&
-          _hosts.any((element) => element.id == savedActiveHost)) {
-        _activeHostIds.add(savedActiveHost);
-        // 删除旧配置
-        await prefs.remove('alist_active_host');
-      }
+      // 删除旧的激活主机配置数据
+      await prefs.remove('alist_active_hosts');
+      await prefs.remove('alist_active_host');
     } catch (e) {
       debugPrint('加载AList配置失败: $e');
     } finally {
@@ -86,11 +90,6 @@ class AlistService {
   Future<void> _persistHosts() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('alist_hosts', AlistHost.encodeList(_hosts));
-    if (_activeHostIds.isNotEmpty) {
-      await prefs.setString('alist_active_hosts', json.encode(_activeHostIds));
-    } else {
-      await prefs.remove('alist_active_hosts');
-    }
   }
 
   // 添加新的AList服务器配置
@@ -112,13 +111,11 @@ class AlistService {
     );
 
     _hosts.add(host);
-    _activeHostIds.add(id); // 默认添加到激活列表
     await _persistHosts();
 
     // 如果用户名和密码都为空，则跳过认证，标记为在线
     if (username.isEmpty && password.isEmpty) {
       final updatedHost = host.copyWith(
-        isOnline: true,
         lastConnectedAt: DateTime.now(),
       );
 
@@ -137,7 +134,6 @@ class AlistService {
       final updatedHost = host.copyWith(
         token: token,
         tokenExpiresAt: DateTime.now().add(const Duration(hours: 48)),
-        isOnline: true,
         lastConnectedAt: DateTime.now(),
       );
 
@@ -157,28 +153,10 @@ class AlistService {
   // 移除AList服务器配置
   Future<void> removeHost(String hostId) async {
     _hosts.removeWhere((host) => host.id == hostId);
-    _activeHostIds.remove(hostId); // 同时从激活列表中移除
     await _persistHosts();
   }
 
-  // 添加主机到激活列表
-  Future<void> addActiveHost(String hostId) async {
-    if (!_hosts.any((host) => host.id == hostId)) {
-      throw Exception('找不到指定的AList服务器');
-    }
-    if (!_activeHostIds.contains(hostId)) {
-      _activeHostIds.add(hostId);
-      await _persistHosts();
-    }
-  }
-
-  // 从激活列表中移除主机
-  Future<void> removeActiveHost(String hostId) async {
-    if (_activeHostIds.contains(hostId)) {
-      _activeHostIds.remove(hostId);
-      await _persistHosts();
-    }
-  }
+  // 注意：不再需要addActiveHost和removeActiveHost方法，所有启用的主机都是激活状态
 
   // 更新AList服务器配置
   Future<AlistHost> updateHost({
@@ -212,21 +190,19 @@ class AlistService {
       tokenExpiresAt: (baseUrl != null || username != null || password != null)
           ? null
           : oldHost.tokenExpiresAt,
-      isOnline: false, // 重新连接前标记为离线
     );
 
     _hosts[index] = updatedHost;
     await _persistHosts();
 
-    // 如果是活动主机且URL或凭证有变化，尝试重新连接
-    if (_activeHostIds.contains(hostId) &&
+    // 如果主机已启用且URL或凭证有变化，尝试重新连接
+    if (updatedHost.enabled &&
         (baseUrl != null || username != null || password != null)) {
       try {
         final token = await _authenticate(updatedHost);
         final reconnectedHost = updatedHost.copyWith(
           token: token,
           tokenExpiresAt: DateTime.now().add(const Duration(hours: 48)),
-          isOnline: true,
           lastConnectedAt: DateTime.now(),
           lastError: null,
         );
@@ -235,22 +211,14 @@ class AlistService {
         return reconnectedHost;
       } catch (e) {
         debugPrint('更新AList服务器后重连失败: $e');
-        _updateHostStatus(updatedHost.id,
-            isOnline: false, lastError: e.toString());
+        _updateHostStatus(updatedHost.id, lastError: e.toString());
       }
     }
 
     return _hosts[index];
   }
 
-  // 设置活动的AList服务器（兼容旧版API）
-  Future<void> setActiveHost(String hostId) async {
-    if (!_hosts.any((host) => host.id == hostId)) return;
-
-    _activeHostIds.clear();
-    _activeHostIds.add(hostId);
-    await _persistHosts();
-  }
+  // 注意：不再需要setActiveHost方法，所有启用的主机都是激活状态
 
   // 认证并获取Token
   Future<String> _authenticate(AlistHost host) async {
@@ -277,8 +245,18 @@ class AlistService {
         throw Exception('认证失败: HTTP ${response.statusCode}, ${response.body}');
       }
 
-      final authResponse =
-          AlistAuthResponse.fromJson(json.decode(response.body));
+      final dynamic decodedBody;
+      try {
+        decodedBody = json.decode(response.body);
+        if (decodedBody is! Map<String, dynamic>) {
+          throw Exception('无效的响应格式: 期望Map<String, dynamic>但得到${decodedBody.runtimeType}');
+        }
+      } catch (e) {
+        debugPrint('JSON解码失败: $e，响应体: ${response.body}');
+        throw Exception('解析服务器响应失败: $e');
+      }
+      
+      final authResponse = AlistAuthResponse.fromJson(decodedBody as Map<String, dynamic>);
       if (authResponse.code != 200) {
         throw Exception('认证失败: ${authResponse.message}');
       }
@@ -307,7 +285,6 @@ class AlistService {
       final updatedHost = host.copyWith(
         token: token,
         tokenExpiresAt: DateTime.now().add(const Duration(hours: 48)),
-        isOnline: true,
         lastConnectedAt: DateTime.now(),
       );
 
@@ -337,7 +314,14 @@ class AlistService {
     }
 
     try {
-      path = Uri.decodeComponent(path);
+      // 如果是已url编码，解码
+      if (path.contains('%')) {
+        try {
+          path = Uri.decodeComponent(path);
+        } catch (e) {
+          debugPrint('URL解码失败: $e');
+        }
+      }
       final token = await _ensureValidToken(host);
       final uri = Uri.parse('${host.baseUrl}/api/fs/list');
 
@@ -380,17 +364,17 @@ class AlistService {
               '获取文件列表失败: ${fileListResponse.message} [ 路径: $path ]');
         }
 
-        // 更新主机状态为在线
-        _updateHostStatus(host.id, isOnline: true, lastError: null);
+        // 更新主机状态
+        _updateHostStatus(host.id, lastError: null);
 
         return fileListResponse.data.content;
       } finally {
         client.close();
       }
     } catch (e) {
-      debugPrint('获取AList文件列表失败: $e');
-      // 更新主机状态为离线
-      _updateHostStatus(host.id, isOnline: false, lastError: e.toString());
+      debugPrint('获取AList文件列表失败: $e 路径: $path');
+      // 更新主机状态
+      _updateHostStatus(host.id, lastError: e.toString());
       rethrow;
     }
   }
@@ -409,13 +393,12 @@ class AlistService {
   }
 
   // 更新主机状态
-  void _updateHostStatus(String hostId, {bool? isOnline, String? lastError}) {
+  void _updateHostStatus(String hostId, {String? lastError}) {
     final index = _hosts.indexWhere((host) => host.id == hostId);
     if (index == -1) return;
 
     final current = _hosts[index];
     final updated = current.copyWith(
-      isOnline: isOnline ?? current.isOnline,
       lastConnectedAt: DateTime.now(),
       lastError: lastError,
     );

@@ -704,10 +704,10 @@ class _RemoteMediaLibraryPageState extends State<RemoteMediaLibraryPage> {
                         Border.all(color: const Color(0xFF96F7E4), width: 1),
                   ),
                   child: Text(
-                    '已连接 ${alistProvider.activeHosts.length} 个',
-                    locale: Locale("zh-Hans", "zh"),
-                    style: TextStyle(
-                      color: const Color(0xFF96F7E4),
+                    '已启用 ${alistProvider.activeHosts.length} 个',
+                    locale: const Locale("zh-Hans", "zh"),
+                    style: const TextStyle(
+                      color: Color(0xFF96F7E4),
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -748,15 +748,6 @@ class _RemoteMediaLibraryPageState extends State<RemoteMediaLibraryPage> {
                     onPressed: () => _showAlistServerDialog(),
                     icon: Icons.settings,
                     label: '管理服务器',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildGlassButton(
-                    onPressed: () => _disconnectAlistServer(alistProvider),
-                    icon: Icons.logout,
-                    label: '断开连接',
-                    isDestructive: true,
                   ),
                 ),
               ],
@@ -805,8 +796,6 @@ class _RemoteMediaLibraryPageState extends State<RemoteMediaLibraryPage> {
           ] else ...[
             Column(
               children: allHosts.map((host) {
-                final isActive = alistProvider.activeHostIds.contains(host.id);
-
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -816,9 +805,9 @@ class _RemoteMediaLibraryPageState extends State<RemoteMediaLibraryPage> {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            color: host.isOnline ? Colors.green : Colors.red,
+                            color: Colors.green,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -832,40 +821,6 @@ class _RemoteMediaLibraryPageState extends State<RemoteMediaLibraryPage> {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(width: 8),
-
-                        // 连接状态标签
-                        if (isActive)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF96F7E4).withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              '已连接',
-                              locale: Locale("zh-Hans", "zh"),
-                              style: TextStyle(
-                                color: Color(0xFF96F7E4),
-                                fontSize: 11,
-                              ),
-                            ),
-                          ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          child: Text(
-                            host.enabled ? '已启用' : '已禁用',
-                            locale: const Locale("zh-Hans", "zh"),
-                            style: TextStyle(
-                              color: host.enabled ? Colors.green : Colors.red,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                        const Spacer(),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -1189,48 +1144,5 @@ class _RemoteMediaLibraryPageState extends State<RemoteMediaLibraryPage> {
       context: context,
       builder: (context) => const AlistDialog(),
     );
-  }
-
-  Future<void> _disconnectAlistServer(AlistProvider alistProvider) async {
-    // 重命名为_disconnectAllAlistServers，保留向后兼容
-    await _disconnectAllAlistServers(alistProvider);
-  }
-
-  Future<void> _disconnectAllAlistServers(AlistProvider alistProvider) async {
-    final confirm = await BlurDialog.show<bool>(
-      context: context,
-      title: '断开连接',
-      content: '确定要断开所有AList服务器连接吗？\n\n这将清除所有服务器的激活状态。',
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('取消',
-              locale: Locale("zh-Hans", "zh"),
-              style: TextStyle(color: Colors.white70)),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          child: const Text('断开连接',
-              locale: Locale("zh-Hans", "zh"),
-              style: TextStyle(color: Colors.red)),
-        ),
-      ],
-    );
-
-    if (confirm == true) {
-      try {
-        // 移除所有激活的主机
-        for (var hostId in List.from(alistProvider.activeHostIds)) {
-          await alistProvider.removeActiveHost(hostId);
-        }
-        if (mounted) {
-          BlurSnackBar.show(context, '已断开所有AList服务器连接');
-        }
-      } catch (e) {
-        if (mounted) {
-          BlurSnackBar.show(context, '断开连接时出错: $e');
-        }
-      }
-    }
   }
 }

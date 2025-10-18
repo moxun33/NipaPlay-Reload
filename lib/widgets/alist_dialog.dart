@@ -172,89 +172,82 @@ class _AlistDialogState extends State<AlistDialog> {
                       ),
                       color: const Color(0xFF3A3A3A),
                       child: InkWell(
-                        onTap: () async {
-                          await provider.setActiveHost(host.id);
-                          if (mounted) {
-                            Navigator.of(context).pop();
-                          }
-                        },
+                        onTap: () async {},
                         borderRadius: BorderRadius.circular(12),
                         child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: host.isOnline
-                                  ? Colors.green.shade900
-                                      .withValues(alpha: 0.3)
-                                  : Colors.red.shade900
-                                      .withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Center(
-                              child: SvgPicture.asset(
-                                'assets/alist.svg',
-                                width: 24,
-                                height: 24,
-                                colorFilter: ColorFilter.mode(
-                                  host.isOnline ? Colors.green : Colors.red,
-                                  BlendMode.srcIn,
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade900.withValues(
+                                      alpha: 0.3), // 所有已启用的主机都显示为在线状态
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                                child: Center(
+                                  child: SvgPicture.asset(
+                                    'assets/alist.svg',
+                                    width: 24,
+                                    height: 24,
+                                    colorFilter: const ColorFilter.mode(
+                                      Colors.green,
+                                      BlendMode.srcIn,
+                                    ), // 所有已启用的主机都显示为在线状态
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          host.displayName,
+                                          style: theme.textTheme.titleMedium,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        if (!host.enabled)
+                                          Chip(
+                                            label: const Text('已禁用',
+                                                style: TextStyle(fontSize: 10)),
+                                            backgroundColor:
+                                                Colors.grey.shade700,
+                                            labelStyle: const TextStyle(
+                                                color: Colors.grey),
+                                            padding: EdgeInsets.zero,
+                                            labelPadding:
+                                                const EdgeInsets.symmetric(
+                                                    horizontal: 6),
+                                          ),
+                                      ],
+                                    ),
                                     Text(
-                                      host.displayName,
-                                      style: theme.textTheme.titleMedium,
+                                      host.baseUrl,
+                                      style:
+                                          theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.hintColor,
+                                      ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(width: 8),
-                                    if (!host.enabled)
-                                      Chip(
-                                        label: const Text('已禁用', style: TextStyle(fontSize: 10)),
-                                        backgroundColor: Colors.grey.shade700,
-                                        labelStyle: const TextStyle(color: Colors.grey),
-                                        padding: EdgeInsets.zero,
-                                        labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+                                    if (host.username.isNotEmpty)
+                                      Text(
+                                        '用户名: ${host.username}',
+                                        style:
+                                            theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.hintColor,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                   ],
                                 ),
-                                Text(
-                                  host.baseUrl,
-                                  style:
-                                      theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.hintColor,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                if (host.username.isNotEmpty)
-                                  Text(
-                                    '用户名: ${host.username}',
-                                    style:
-                                        theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.hintColor,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                              ],
-                            ),
-                          ),
+                              ),
                               PopupMenuButton<String>(
                                 itemBuilder: (context) => [
-                                  const PopupMenuItem(
-                                    value: 'connect',
-                                    child: Text('连接'),
-                                  ),
                                   const PopupMenuItem(
                                     value: 'edit',
                                     child: Text('编辑'),
@@ -266,13 +259,7 @@ class _AlistDialogState extends State<AlistDialog> {
                                   ),
                                 ],
                                 onSelected: (value) async {
-                                  if (value == 'connect') {
-                                    try {
-                                      await provider.setActiveHost(host.id);
-                                    } catch (e) {
-                                      // 错误已经在provider中处理
-                                    }
-                                  } else if (value == 'edit') {
+                                  if (value == 'edit') {
                                     _showServerFormMethod(
                                         hostId: host.id, provider: provider);
                                   } else if (value == 'delete') {
@@ -471,7 +458,8 @@ class _AlistDialogState extends State<AlistDialog> {
             ),
             const SizedBox(height: 16),
             SwitchListTile(
-              title: Text('启用服务器', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+              title: Text('启用服务器',
+                  style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
               value: _enabled,
               onChanged: (bool value) {
                 setState(() {

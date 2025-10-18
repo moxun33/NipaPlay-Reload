@@ -17,10 +17,31 @@ class AlistProvider extends ChangeNotifier {
   bool _isConnected = false;
 
   List<AlistHost> get hosts => _alistService.hosts;
-  List<String> get activeHostIds => _alistService.activeHostIds;
   List<AlistHost> get activeHosts => _alistService.activeHosts;
   AlistHost? get activeHost => _alistService.activeHost;
-  String? get activeHostId => activeHostIds.isNotEmpty ? activeHostIds.first : null;
+  String? get activeHostId => activeHost?.id; // 返回当前选中的主机ID
+
+  // 根据ID选择要使用的主机
+  void selectHostById(String hostId) {
+    _alistService.selectHostById(hostId);
+    // 选择新主机后，重置当前路径和文件列表
+    _currentPath = '/';
+    _currentFiles = [];
+    _isConnected = false;
+    notifyListeners();
+  }
+
+  // 取消选择特定主机，回到默认行为
+  void clearSelectedHost() {
+    _alistService.clearSelectedHost();
+    notifyListeners();
+  }
+
+  // 根据ID获取主机
+  AlistHost? getHostById(String hostId) {
+    return _alistService.getHostById(hostId);
+  }
+
   List<AlistFile> get currentFiles => List.unmodifiable(_currentFiles);
   String get currentPath => _currentPath;
   bool get isLoading => _isLoading;
@@ -35,7 +56,8 @@ class AlistProvider extends ChangeNotifier {
   }
 
   // 添加新的AList服务器
-  Future<AlistHost> addHost(String displayName, {
+  Future<AlistHost> addHost(
+    String displayName, {
     required String baseUrl,
     String username = '',
     String password = '',
@@ -53,15 +75,15 @@ class AlistProvider extends ChangeNotifier {
         password: password,
         enabled: enabled,
       );
-      
-      _isConnected = host.isOnline;
-      _errorMessage = host.isOnline ? null : '认证成功，但连接状态未知';
-      
+
+      _isConnected = true; // 默认认为连接成功
+      _errorMessage = null;
+
       // 如果是第一个主机，立即加载根目录
-      if (_alistService.hosts.length == 1 && host.isOnline) {
+      if (hosts.length == 1) {
         await navigateTo('/');
       }
-      
+
       notifyListeners();
       return host;
     } catch (e) {
@@ -79,14 +101,14 @@ class AlistProvider extends ChangeNotifier {
   Future<void> removeHost(String hostId) async {
     try {
       await _alistService.removeHost(hostId);
-      
+
       // 如果移除的是当前活动主机，清空当前文件列表
-      if (hostId == activeHostId) {
+      if (hostId == activeHost?.id) {
         _currentFiles = [];
         _currentPath = '/';
         _isConnected = false;
       }
-      
+
       notifyListeners();
     } catch (e) {
       _errorMessage = '移除AList服务器失败: $e';
@@ -96,7 +118,8 @@ class AlistProvider extends ChangeNotifier {
   }
 
   // 更新AList服务器配置
-  Future<AlistHost> updateHost(String hostId, {
+  Future<AlistHost> updateHost(
+    String hostId, {
     String? displayName,
     String? baseUrl,
     String? username,
@@ -116,16 +139,16 @@ class AlistProvider extends ChangeNotifier {
         password: password,
         enabled: enabled,
       );
-      
-      // 如果更新的是当前活动主机，更新连接状态
-      if (hostId == activeHostId) {
-        _isConnected = host.isOnline;
-        // 如果主机重新连接成功，重新加载当前目录
-        if (host.isOnline && _currentPath != '/') {
+
+      // 如果更新的是当前活动主机，设置为已连接
+      if (hostId == activeHost?.id) {
+        _isConnected = true; // 默认认为连接成功
+        // 重新加载当前目录
+        if (_currentPath != '/') {
           await navigateTo(_currentPath);
         }
       }
-      
+
       notifyListeners();
       return host;
     } catch (e) {
@@ -139,63 +162,11 @@ class AlistProvider extends ChangeNotifier {
     }
   }
 
-  // 设置活动的AList服务器（兼容旧版API）
-  Future<void> setActiveHost(String hostId) async {
-    try {
-      await _alistService.setActiveHost(hostId);
-      
-      // 清空当前文件列表并导航到根目录
-      _currentFiles = [];
-      _currentPath = '/';
-      _isConnected = activeHost?.isOnline ?? false;
-      
-      // 尝试加载根目录
-      if (_isConnected) {
-        await navigateTo('/');
-      }
-      
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = '设置活动AList服务器失败: $e';
-      debugPrint('设置活动AList服务器失败: $e');
-      notifyListeners();
-    }
-  }
-  
-  // 添加主机到激活列表
-  Future<void> addActiveHost(String hostId) async {
-    try {
-      await _alistService.addActiveHost(hostId);
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = '添加激活AList服务器失败: $e';
-      debugPrint('添加激活AList服务器失败: $e');
-      notifyListeners();
-    }
-  }
-  
-  // 从激活列表中移除主机
-  Future<void> removeActiveHost(String hostId) async {
-    try {
-      await _alistService.removeActiveHost(hostId);
-      
-      // 如果移除的是当前活动主机，清空当前文件列表
-      if (activeHostId == hostId) {
-        _currentFiles = [];
-        _currentPath = '/';
-        _isConnected = activeHost?.isOnline ?? false;
-      }
-      
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = '移除激活AList服务器失败: $e';
-      debugPrint('移除激活AList服务器失败: $e');
-      notifyListeners();
-    }
-  }
+  // 注意：不再需要setActiveHost、addActiveHost和removeActiveHost方法，所有启用的主机都是激活状态
 
   // 导航到指定路径
-  Future<void> navigateTo(String path, {String password = '',   bool? refresh}) async {
+  Future<void> navigateTo(String path,
+      {String password = '', bool? refresh}) async {
     if (activeHost == null) {
       _errorMessage = '未选择AList服务器';
       notifyListeners();
@@ -212,14 +183,14 @@ class AlistProvider extends ChangeNotifier {
         path: path,
         password: password,
       );
-      
+
       // 按文件夹优先，然后按名称排序
-    /*   files.sort((a, b) {
+      /*   files.sort((a, b) {
         if (a.isDir && !b.isDir) return -1;
         if (!a.isDir && b.isDir) return 1;
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       }); */
-      
+
       _currentFiles = files;
       _isConnected = true;
       notifyListeners();
@@ -237,12 +208,11 @@ class AlistProvider extends ChangeNotifier {
   // 返回上一级目录
   Future<void> navigateUp() async {
     if (_currentPath == '/') return;
-    
+
     final parts = _currentPath.split('/');
-    final parentPath = parts.length > 1 
-        ? parts.sublist(0, parts.length - 1).join('/') 
-        : '/';
-    
+    final parentPath =
+        parts.length > 1 ? parts.sublist(0, parts.length - 1).join('/') : '/';
+
     await navigateTo(parentPath);
   }
 
@@ -251,7 +221,7 @@ class AlistProvider extends ChangeNotifier {
     if (activeHost == null) {
       throw Exception('未选择AList服务器');
     }
-    
+
     final streamUrl = _alistService.buildFileUrl('$_currentPath/${file.name}');
     final historyItem = WatchHistoryItem(
       filePath: streamUrl,
@@ -263,7 +233,7 @@ class AlistProvider extends ChangeNotifier {
       isFromScan: false,
       watchProgress: 0,
     );
-    
+
     return PlayableItem(
       videoPath: streamUrl,
       title: file.name,

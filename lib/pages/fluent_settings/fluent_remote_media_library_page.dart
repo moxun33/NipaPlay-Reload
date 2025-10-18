@@ -751,10 +751,8 @@ class _SharedHostTile extends StatelessWidget {
           Row(
             children: [
               Icon(
-                host.isOnline ? FluentIcons.wifi : FluentIcons.plug_disconnected,
-                color: host.isOnline
-                    ? const Color(0xFF107C10)
-                    : const Color(0xFFD83B01),
+                FluentIcons.wifi,
+                color: const Color(0xFF107C10),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -777,12 +775,7 @@ class _SharedHostTile extends StatelessWidget {
             host.baseUrl,
             style: theme.typography.caption,
           ),
-          if (host.lastError != null && host.lastError!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(host.lastError!,
-                style:
-                    theme.typography.caption?.copyWith(color: const Color(0xFFD83B01))),
-          ],
+          // Last error display removed as all hosts are shown as online
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,

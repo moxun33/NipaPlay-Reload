@@ -220,9 +220,6 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
         orElse: () => throw Exception('未找到匹配的AList服务器: $baseUrl'),
       );
 
-      // 设置为活动主机
-      await AlistService.instance.setActiveHost(matchingHost.id);
-
       // 获取目录的父目录（如果有）
       String parentPath = path;
       if (path != '/') {

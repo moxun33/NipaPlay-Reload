@@ -122,7 +122,7 @@ class SharedRemoteHostSelectionSheet extends StatelessWidget {
                       final lastSync = host.lastConnectedAt != null
                           ? host.lastConnectedAt!.toLocal().toString().split('.').first
                           : null;
-                      final statusColor = host.isOnline ? Colors.greenAccent : Colors.orangeAccent;
+                      final statusColor = Colors.greenAccent;
                       return GestureDetector(
                         onTap: () async {
                           await provider.setActiveHost(host.id);
@@ -144,7 +144,7 @@ class SharedRemoteHostSelectionSheet extends StatelessWidget {
                               Row(
                                 children: [
                                   Icon(
-                                    host.isOnline ? Ionicons.checkmark_circle_outline : Ionicons.alert_circle_outline,
+                                    Ionicons.checkmark_circle_outline,
                                     color: statusColor,
                                     size: 18,
                                   ),

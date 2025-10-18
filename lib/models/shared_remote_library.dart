@@ -7,7 +7,6 @@ class SharedRemoteHost {
     required this.baseUrl,
     this.lastConnectedAt,
     this.lastError,
-    this.isOnline = false,
   });
 
   final String id;
@@ -15,7 +14,6 @@ class SharedRemoteHost {
   final String baseUrl;
   final DateTime? lastConnectedAt;
   final String? lastError;
-  final bool isOnline;
 
   SharedRemoteHost copyWith({
     String? id,
@@ -23,7 +21,6 @@ class SharedRemoteHost {
     String? baseUrl,
     DateTime? lastConnectedAt,
     String? lastError,
-    bool? isOnline,
   }) {
     return SharedRemoteHost(
       id: id ?? this.id,
@@ -31,18 +28,16 @@ class SharedRemoteHost {
       baseUrl: baseUrl ?? this.baseUrl,
       lastConnectedAt: lastConnectedAt ?? this.lastConnectedAt,
       lastError: lastError,
-      isOnline: isOnline ?? this.isOnline,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'displayName': displayName,
-      'baseUrl': baseUrl,
-      'lastConnectedAt': lastConnectedAt?.toIso8601String(),
-      'lastError': lastError,
-      'isOnline': isOnline,
+    'displayName': displayName,
+    'baseUrl': baseUrl,
+    'lastConnectedAt': lastConnectedAt?.toIso8601String(),
+    'lastError': lastError,
     };
   }
 
@@ -55,7 +50,6 @@ class SharedRemoteHost {
           ? DateTime.tryParse(json['lastConnectedAt'] as String)
           : null,
       lastError: json['lastError'] as String?,
-      isOnline: json['isOnline'] as bool? ?? false,
     );
   }
 

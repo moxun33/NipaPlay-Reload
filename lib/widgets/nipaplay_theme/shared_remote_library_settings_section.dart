@@ -119,7 +119,6 @@ class SharedRemoteLibrarySettingsSection extends StatelessWidget {
       children: [
         ...provider.hosts.map((host) {
         final isActive = provider.activeHostId == host.id;
-        final statusColor = host.isOnline ? Colors.greenAccent : Colors.orangeAccent;
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
@@ -137,8 +136,8 @@ class SharedRemoteLibrarySettingsSection extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    host.isOnline ? Icons.check_circle : Icons.pending_outlined,
-                    color: statusColor,
+                    Icons.check_circle,
+                    color: Colors.greenAccent,
                     size: 18,
                   ),
                   const SizedBox(width: 6),

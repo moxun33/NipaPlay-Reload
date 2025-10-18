@@ -11,7 +11,6 @@ class AlistHost {
     this.tokenExpiresAt,
     this.lastConnectedAt,
     this.lastError,
-    this.isOnline = false,
     this.enabled = true,
   });
 
@@ -24,7 +23,6 @@ class AlistHost {
   final DateTime? tokenExpiresAt;
   final DateTime? lastConnectedAt;
   final String? lastError;
-  final bool isOnline;
   final bool enabled;
 
   AlistHost copyWith({
@@ -37,7 +35,6 @@ class AlistHost {
     DateTime? tokenExpiresAt,
     DateTime? lastConnectedAt,
     String? lastError,
-    bool? isOnline,
     bool? enabled,
   }) {
     return AlistHost(
@@ -50,7 +47,6 @@ class AlistHost {
       tokenExpiresAt: tokenExpiresAt,
       lastConnectedAt: lastConnectedAt ?? this.lastConnectedAt,
       lastError: lastError,
-      isOnline: isOnline ?? this.isOnline,
       enabled: enabled ?? this.enabled,
     );
   }
@@ -66,7 +62,6 @@ class AlistHost {
       'tokenExpiresAt': tokenExpiresAt?.toIso8601String(),
       'lastConnectedAt': lastConnectedAt?.toIso8601String(),
       'lastError': lastError,
-      'isOnline': isOnline,
       'enabled': enabled,
     };
   }
@@ -88,7 +83,6 @@ class AlistHost {
           ? DateTime.tryParse(safeJson['lastConnectedAt'] as String? ?? '')
           : null,
       lastError: safeJson['lastError'] as String?,
-      isOnline: safeJson['isOnline'] as bool? ?? false,
       enabled: safeJson['enabled'] as bool? ?? true,
     );
   }
@@ -96,7 +90,8 @@ class AlistHost {
   static List<AlistHost> decodeList(String raw) {
     final decoded = json.decode(raw) as List<dynamic>;
     return decoded
-        .map((item) => AlistHost.fromJson(Map<String, dynamic>.from(item)))
+        .map(
+            (item) => AlistHost.fromJson(Map<String, dynamic>.from(item ?? {})))
         .toList();
   }
 
@@ -225,9 +220,10 @@ class AlistAuthResponse {
 
   factory AlistAuthResponse.fromJson(Map<String, dynamic> json) {
     return AlistAuthResponse(
-      code: json['code'] as int,
-      message: json['message'] as String,
-      data: AlistAuthData.fromJson(json['data'] as Map<String, dynamic>),
+      code: json['code'] as int? ?? 500,
+      message: json['message'] as String? ?? '未知错误',
+      data:
+          AlistAuthData.fromJson(Map<String, dynamic>.from(json['data'] ?? {})),
     );
   }
 }
@@ -241,7 +237,7 @@ class AlistAuthData {
 
   factory AlistAuthData.fromJson(Map<String, dynamic> json) {
     return AlistAuthData(
-      token: json['token'] as String,
+      token: (json['token'] as String?) ?? '',
     );
   }
 }
