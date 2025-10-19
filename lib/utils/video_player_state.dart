@@ -88,7 +88,8 @@ class _VideoDimensionSnapshot {
   bool get hasSource =>
       srcWidth != null && srcWidth! > 0 && srcHeight != null && srcHeight! > 0;
 
-  bool get hasDisplay => displayWidth != null &&
+  bool get hasDisplay =>
+      displayWidth != null &&
       displayWidth! > 0 &&
       displayHeight != null &&
       displayHeight! > 0;
@@ -995,7 +996,7 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
       return;
     }
 
-    // 对网络URL和Jellyfin流媒体进行特殊处理
+    // 对网络URL和Jellyfin流媒体进行特殊处理 排除 /d/ /dav/ 的视频
     if (videoPath.startsWith('http://') || videoPath.startsWith('https://')) {
       debugPrint('VideoPlayerState: 准备流媒体URL: $videoPath');
       // 添加网络错误处理的尝试/捕获块
@@ -4632,9 +4633,8 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
   }
 
   void _applyAnime4KMpvTuning({required bool enable}) {
-    final Map<String, String> options = enable
-        ? _anime4kRecommendedMpvOptions
-        : _anime4kDefaultMpvOptions;
+    final Map<String, String> options =
+        enable ? _anime4kRecommendedMpvOptions : _anime4kDefaultMpvOptions;
     options.forEach((String key, String value) {
       try {
         player.setProperty(key, value);
@@ -4647,8 +4647,7 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
 
   Future<void> _logCurrentVideoDimensions({String context = ''}) async {
     try {
-      final _VideoDimensionSnapshot snapshot =
-          await _collectVideoDimensions();
+      final _VideoDimensionSnapshot snapshot = await _collectVideoDimensions();
 
       final String contextLabel = context.isEmpty ? '' : ' [$context]';
       final String srcLabel = snapshot.hasSource
@@ -4685,8 +4684,7 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
         return;
       }
 
-      final _VideoDimensionSnapshot snapshot =
-          await _collectVideoDimensions();
+      final _VideoDimensionSnapshot snapshot = await _collectVideoDimensions();
       if (!snapshot.hasSource) {
         if (retry < maxRetry) {
           await Future.delayed(const Duration(milliseconds: 200));
@@ -4735,8 +4733,8 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
 
     Map<String, dynamic> _toStringKeyedMap(dynamic raw) {
       if (raw is Map) {
-        return raw.map((dynamic key, dynamic value) =>
-            MapEntry(key.toString(), value));
+        return raw.map(
+            (dynamic key, dynamic value) => MapEntry(key.toString(), value));
       }
       return <String, dynamic>{};
     }
@@ -4755,8 +4753,7 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
         if (parsedDouble != null) {
           return parsedDouble.round();
         }
-        final String digitsOnly =
-            trimmed.replaceAll(RegExp(r'[^0-9.-]'), '');
+        final String digitsOnly = trimmed.replaceAll(RegExp(r'[^0-9.-]'), '');
         final int? fallbackInt = int.tryParse(digitsOnly);
         if (fallbackInt != null) {
           return fallbackInt;

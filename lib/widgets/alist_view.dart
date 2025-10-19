@@ -580,14 +580,8 @@ class _AlistViewState extends State<AlistView> {
       itemCount: filteredFiles.length,
       itemBuilder: (context, index) {
         final file = filteredFiles[index];
-        return Card(
-          elevation: 2,
-          margin: const EdgeInsets.symmetric(vertical: 2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-          color: const Color(0xFF3A3A3A),
-          child: GestureDetector(
+        return GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () async {
               if (file.isDir) {
                 final newPath =
@@ -609,77 +603,84 @@ class _AlistViewState extends State<AlistView> {
                 }
               }
             },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Row(
-                children: [
-                  // 图标部分
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: file.isDir
-                          ? const Color(0xFF96F7E4).withOpacity(0.1)
-                          : file.isVideo
-                              ? Colors.red.shade900.withOpacity(0.1)
-                              : Colors.grey.shade800,
-                      borderRadius: BorderRadius.circular(4),
+            child: Card(
+              elevation: 2,
+              margin: const EdgeInsets.symmetric(vertical: 2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              color: const Color(0xFF3A3A3A),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Row(
+                  children: [
+                    // 图标部分
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: file.isDir
+                            ? const Color(0xFF96F7E4).withOpacity(0.1)
+                            : file.isVideo
+                                ? Colors.red.shade900.withOpacity(0.1)
+                                : Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Icon(
+                        file.isDir
+                            ? Icons.folder
+                            : file.isVideo
+                                ? Icons.video_file
+                                : Icons.insert_drive_file,
+                        size: 16,
+                        color: file.isDir
+                            ? const Color(0xFF96F7E4)
+                            : file.isVideo
+                                ? Colors.red
+                                : Colors.grey,
+                      ),
                     ),
-                    child: Icon(
-                      file.isDir
-                          ? Icons.folder
-                          : file.isVideo
-                              ? Icons.video_file
-                              : Icons.insert_drive_file,
-                      size: 16,
-                      color: file.isDir
-                          ? const Color(0xFF96F7E4)
-                          : file.isVideo
-                              ? Colors.red
-                              : Colors.grey,
-                    ),
-                  ),
 
-                  // 主要内容部分
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // 文件名
-                        Text(
-                          file.name,
-                          style: theme.textTheme.bodyMedium
-                              ?.copyWith(fontSize: 13),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        // 文件信息
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              file.isDir ? '文件夹' : _formatFileSize(file.size),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.hintColor,
-                                fontSize: 11,
+                    // 主要内容部分
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 文件名
+                          Text(
+                            file.name,
+                            style: theme.textTheme.bodyMedium
+                                ?.copyWith(fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          // 文件信息
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                file.isDir ? '文件夹' : _formatFileSize(file.size),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.hintColor,
+                                  fontSize: 11,
+                                ),
                               ),
-                            ),
-                            Text(
-                              _formatDateTime(file.modified),
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.hintColor, fontSize: 11),
-                              overflow: TextOverflow.ellipsis,
-                            )
-                          ],
-                        ),
-                      ],
+                              Text(
+                                _formatDateTime(file.modified),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.hintColor, fontSize: 11),
+                                overflow: TextOverflow.ellipsis,
+                              )
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        );
+          );
       },
     );
   }
