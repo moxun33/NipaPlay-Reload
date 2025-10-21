@@ -118,7 +118,9 @@ class _TooltipBubbleState extends State<TooltipBubble> {
         lowerText.contains('esc')) {
       return textPainter.width + widget.padding * 2 + 20;
     } else {
-      return textPainter.width + widget.padding * 2 + 4;
+      // 增加额外的宽度，确保时间信息能够完整显示
+      // 时间格式通常为 HH:MM:SS，需要足够的宽度
+      return textPainter.width + widget.padding * 2 + 12;
     }
   }
 
@@ -210,4 +212,4 @@ class _TooltipBubbleState extends State<TooltipBubble> {
       ),
     );
   }
-} 
+}
