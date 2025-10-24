@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:flutter/foundation.dart';
 
 class UpdateService {
-  static const String _repoUrl = 'https://api.github.com/repos/MCDFsteve/NipaPlay-Reload/releases/latest';
+  static const String _repoUrl = 'https://api.github.com/repos/moxun33/NipaPlay-Reload/releases/latest';
   
   static Future<UpdateInfo> checkForUpdates() async {
     try {
