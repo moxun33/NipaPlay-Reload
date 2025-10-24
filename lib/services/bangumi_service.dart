@@ -4,13 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nipaplay/models/bangumi_model.dart';
+import 'package:nipaplay/utils/network_settings.dart';
 import './dandanplay_service.dart';
 
 class BangumiService {
   static final BangumiService instance = BangumiService._();
-  static const String _dandanplayBaseUrl = 'https://api.dandanplay.net/api/v2';
-  static const String _shinBangumiUrl = '$_dandanplayBaseUrl/bangumi/shin';
-  static const String _bangumiDetailUrl = '$_dandanplayBaseUrl/bangumi/';
+  
+  // 获取动态基础 URL
+  Future<String> _getApiBaseUrl() async {
+    final baseUrl = await NetworkSettings.getDandanplayServer();
+    return '$baseUrl/api/v2';
+  }
+  
+  // 构建完整的 API URL
+  Future<String> _buildApiUrl(String path) async {
+    final baseUrl = await _getApiBaseUrl();
+    return '$baseUrl$path';
+  }
 
   static const String _cacheKey = 'dandanplay_shin_cache';
   static const String _detailsCacheKeyPrefix = 'bangumi_detail_';
@@ -112,7 +122,8 @@ class BangumiService {
     }
   }
 
-  Future<http.Response> _makeRequest(String url, {int maxRetries = 3, int priority = 0}) async {
+  Future<http.Response> _makeRequest(String path, {int maxRetries = 3, int priority = 0}) async {
+    final url = await _buildApiUrl(path);
     final completer = Completer<http.Response>();
     _requestQueue.add(_RequestItem(url, maxRetries, priority, completer));
     _processQueue();
@@ -151,8 +162,12 @@ class BangumiService {
         final String appSecret = await DandanplayService.getAppSecret();
         final int timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
         
+        // 从 URL 中提取 API 路径（去掉基础部分）
         final Uri parsedUri = Uri.parse(item.url);
-        final String apiPath = parsedUri.path;
+        String apiPath = parsedUri.path;
+        if (apiPath.startsWith('/api/v2')) {
+          apiPath = apiPath.substring('/api/v2'.length);
+        }
         
         final String signature = DandanplayService.generateSignature(appId, timestamp, apiPath, appSecret);
 
@@ -198,7 +213,7 @@ class BangumiService {
     // If forceRefresh is true, we definitely skip trying memory cache first before network.
     // However, the new strategy is always network first unless network fails.
 
-    final apiUrl = '$_shinBangumiUrl?filterAdultContent=$filterAdultContent';
+    final apiUrl = await _buildApiUrl('/bangumi/shin?filterAdultContent=$filterAdultContent');
     //debugPrint('[新番-弹弹play] Attempting to fetch from API: $apiUrl');
 
     try {
@@ -364,7 +379,7 @@ class BangumiService {
     }
 
     // 从API获取
-    final detailUrl = '$_bangumiDetailUrl$animeId';
+    final detailUrl = await _buildApiUrl('/bangumi/$animeId');
     //debugPrint('[番剧服务] 从API获取番剧 $animeId 的详情: $detailUrl');
     try {
       final response = await _makeRequest(detailUrl);
@@ -684,4 +699,4 @@ class _RequestItem {
   final Completer<http.Response> completer;
 
   _RequestItem(this.url, this.maxRetries, this.priority, this.completer);
-} 
+}

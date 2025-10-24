@@ -11,12 +11,25 @@ import 'package:nipaplay/services/jellyfin_episode_mapping_service.dart';
 import 'package:flutter/rendering.dart';
 import 'dart:ui';
 import 'package:nipaplay/widgets/nipaplay_theme/blur_button.dart';
+import 'package:nipaplay/utils/network_settings.dart';
 
 /// 负责将Jellyfin媒体与DandanPlay的内容匹配，以获取弹幕和元数据
 class JellyfinDandanplayMatcher {
   static final JellyfinDandanplayMatcher instance = JellyfinDandanplayMatcher._internal();
   
   JellyfinDandanplayMatcher._internal();
+  
+  // 获取动态基础 URL
+  Future<String> _getApiBaseUrl() async {
+    final baseUrl = await NetworkSettings.getDandanplayServer();
+    return '$baseUrl/api/v2';
+  }
+  
+  // 构建完整的 API URL
+  Future<String> _buildApiUrl(String path) async {
+    final baseUrl = await _getApiBaseUrl();
+    return '$baseUrl$path';
+  }
 
   // 预计算哈希值和预匹配弹幕ID的方法
   // 
@@ -631,8 +644,9 @@ class JellyfinDandanplayMatcher {
       });
       
       debugPrint('发送匹配请求到弹弹play API');
+      final apiUrl = await _buildApiUrl('/match');
       final response = await http.post(
-        Uri.parse('https://api.dandanplay.net/api/v2/match'),
+        Uri.parse(apiUrl),
         headers: headers,
         body: body,
       );
@@ -675,7 +689,8 @@ class JellyfinDandanplayMatcher {
       final timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
       const apiPath = '/api/v2/search/anime';
       
-      final url = 'https://api.dandanplay.net/api/v2/search/anime?keyword=${Uri.encodeComponent(title)}';
+      final path = '/search/anime?keyword=${Uri.encodeComponent(title)}';
+      final url = await _buildApiUrl(path);
       debugPrint('请求URL: $url');
       
       final response = await http.get(
@@ -769,7 +784,8 @@ class JellyfinDandanplayMatcher {
       final timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
       const apiPath = '/api/v2/search/episodes';
       
-      final url = 'https://api.dandanplay.net/api/v2/search/episodes?anime=${Uri.encodeComponent(animeTitle)}';
+      final path = '/search/episodes?anime=${Uri.encodeComponent(animeTitle)}';
+      final url = await _buildApiUrl(path);
       debugPrint('请求URL (使用标题搜索剧集): $url');
       
       final response = await http.get(

@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:nipaplay/services/dandanplay_service.dart';
 import 'package:nipaplay/utils/globals.dart';
 import 'package:nipaplay/utils/global_hotkey_manager.dart';
-import 'dart:ui';
+import 'package:nipaplay/utils/network_settings.dart';
 
 /// 手动弹幕匹配对话框
 /// 
@@ -97,6 +98,18 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
     }
   }
 
+  /// 获取动态基础 URL
+  Future<String> _getApiBaseUrl() async {
+    final baseUrl = await NetworkSettings.getDandanplayServer();
+    return '$baseUrl/api/v2';
+  }
+  
+  /// 构建完整的 API URL
+  Future<String> _buildApiUrl(String path) async {
+    final baseUrl = await _getApiBaseUrl();
+    return '$baseUrl$path';
+  }
+
   /// 搜索动画
   Future<List<Map<String, dynamic>>> _searchAnime(String keyword) async {
     if (keyword.trim().isEmpty) {
@@ -106,9 +119,9 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
     try {
       final appSecret = await DandanplayService.getAppSecret();
       final timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
-      const apiPath = '/api/v2/search/anime';
+      final path = '/search/anime?keyword=${Uri.encodeComponent(keyword)}';
       
-      final url = 'https://api.dandanplay.net/api/v2/search/anime?keyword=${Uri.encodeComponent(keyword)}';
+      final url = await _buildApiUrl(path);
       
       final response = await http.get(
         Uri.parse(url),
@@ -118,7 +131,7 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
           'X-Signature': DandanplayService.generateSignature(
             DandanplayService.appId, 
             timestamp, 
-            apiPath, 
+            path, 
             appSecret
           ),
           'X-Timestamp': '$timestamp',
@@ -182,9 +195,9 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
       
       final appSecret = await DandanplayService.getAppSecret();
       final timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
-      final apiPath = '/api/v2/bangumi/$animeId';
+      final path = '/bangumi/$animeId';
       
-      final url = 'https://api.dandanplay.net/api/v2/bangumi/$animeId';
+      final url = await _buildApiUrl(path);
       debugPrint('API请求URL: $url');
       
       final response = await http.get(
@@ -195,7 +208,7 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
           'X-Signature': DandanplayService.generateSignature(
             DandanplayService.appId, 
             timestamp, 
-            apiPath, 
+            path, 
             appSecret
           ),
           'X-Timestamp': '$timestamp',

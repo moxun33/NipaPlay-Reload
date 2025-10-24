@@ -2,15 +2,28 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:nipaplay/services/dandanplay_service.dart';
+import 'package:nipaplay/utils/network_settings.dart';
 import 'package:nipaplay/widgets/nipaplay_theme/manual_danmaku_dialog.dart';
 
 /// 手动弹幕匹配器
 /// 
 /// 提供手动搜索和匹配弹幕的功能，参考jellyfin_dandanplay_matcher的实现方式
 class ManualDanmakuMatcher {
-  static final ManualDanmakuMatcher instance = ManualDanmakuMatcher._internal();
+  static final ManualDanmakuMatcher instance = ManualDanmakuMatcher._();
   
-  ManualDanmakuMatcher._internal();
+  ManualDanmakuMatcher._();
+  
+  // 获取动态基础 URL
+  Future<String> _getApiBaseUrl() async {
+    final baseUrl = await NetworkSettings.getDandanplayServer();
+    return '$baseUrl/api/v2';
+  }
+  
+  // 构建完整的 API URL
+  Future<String> _buildApiUrl(String path) async {
+    final baseUrl = await _getApiBaseUrl();
+    return '$baseUrl$path';
+  }
 
   /// 搜索动画
   /// 
@@ -24,9 +37,8 @@ class ManualDanmakuMatcher {
       final appSecret = await DandanplayService.getAppSecret();
       final timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
       const apiPath = '/api/v2/search/anime';
-      
-      final url = 'https://api.dandanplay.net/api/v2/search/anime?keyword=${Uri.encodeComponent(keyword)}';
-      
+      final path = '/search/anime?keyword=${Uri.encodeComponent(keyword)}';
+      final url = await _buildApiUrl(path);
       final response = await http.get(
         Uri.parse(url),
         headers: {
@@ -50,7 +62,8 @@ class ManualDanmakuMatcher {
         }
       }
       
-        return [];
+      
+      return [];
     } catch (e) {
       debugPrint('搜索动画时出错: $e');
       rethrow;
@@ -65,9 +78,8 @@ class ManualDanmakuMatcher {
       final appSecret = await DandanplayService.getAppSecret();
       final timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
       final apiPath = '/api/v2/bangumi/$animeId';
-      
-      final url = 'https://api.dandanplay.net/api/v2/bangumi/$animeId';
-      
+      final path = '/bangumi/$animeId';
+      final url = await _buildApiUrl(path);
       final response = await http.get(
         Uri.parse(url),
         headers: {

@@ -4,11 +4,26 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nipaplay/models/search_model.dart';
+import 'package:nipaplay/utils/network_settings.dart';
 import './dandanplay_service.dart';
 
 class SearchService {
   static final SearchService instance = SearchService._();
-  static const String _baseUrl = 'https://api.dandanplay.net/api/v2';
+  
+  // 获取动态基础 URL
+  Future<String> _getApiBaseUrl() async {
+    final baseUrl = await NetworkSettings.getDandanplayServer();
+    return '$baseUrl/api/v2';
+  }
+  
+  // 构建完整的 API URL
+  Future<String> _buildApiUrl(String path) async {
+    final baseUrl = await _getApiBaseUrl();
+    return '$baseUrl$path';
+  }
+  
+  // 执行身份验证请求 - 现在使用下面统一的实现
+  
   static const String _configCacheKey = 'search_config_cache';
   static const Duration _configCacheDuration = Duration(days: 1);
 
@@ -62,8 +77,8 @@ class SearchService {
 
       // 从网络获取
       try {
-        final url = '$_baseUrl/search/adv/config?source=$source';
-        final response = await _makeAuthenticatedRequest(url);
+        final path = '/search/adv/config?source=$source';
+        final response = await _makeAuthenticatedRequest(path);
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
@@ -129,8 +144,8 @@ class SearchService {
 
       try {
         final tagsString = tags.join(',');
-        final url = '$_baseUrl/search/tag?tags=${Uri.encodeComponent(tagsString)}';
-        final response = await _makeAuthenticatedRequest(url);
+        final path = '/search/tag?tags=${Uri.encodeComponent(tagsString)}';
+        final response = await _makeAuthenticatedRequest(path);
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
@@ -223,8 +238,10 @@ class SearchService {
           queryParams['restricted'] = restricted.toString();
         }
 
-        final uri = Uri.parse('$_baseUrl/search/adv').replace(queryParameters: queryParams);
-        final response = await _makeAuthenticatedRequest(uri.toString());
+        // 构建查询参数字符串
+        final queryString = queryParams.entries.map((e) => '${e.key}=${Uri.encodeComponent(e.value)}').join('&');
+        final path = '/search/adv?$queryString';
+        final response = await _makeAuthenticatedRequest(path);
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
@@ -246,14 +263,21 @@ class SearchService {
   }
 
   /// 发送经过认证的HTTP请求（使用DanDanPlay标准认证）
-  Future<http.Response> _makeAuthenticatedRequest(String url) async {
+  Future<http.Response> _makeAuthenticatedRequest(String path) async {
     try {
       const String appId = DandanplayService.appId;
       final String appSecret = await DandanplayService.getAppSecret();
       final int timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
-
-      final Uri parsedUri = Uri.parse(url);
-      final String apiPath = parsedUri.path;
+      
+      // 动态构建完整的 API URL
+      final fullUrl = await _buildApiUrl(path);
+      
+      // 从路径中提取 API 路径（用于签名）
+      String apiPath = path;
+      if (apiPath.startsWith('/api/v2')) {
+        apiPath = apiPath.substring('/api/v2'.length);
+      }
+      
       final String signature = DandanplayService.generateSignature(appId, timestamp, apiPath, appSecret);
 
       final headers = {
@@ -273,12 +297,12 @@ class SearchService {
         }
       }
 
-      debugPrint('[搜索服务] 请求URL: $url');
+      debugPrint('[搜索服务] 请求URL: $fullUrl');
       debugPrint('[搜索服务] API路径: $apiPath');
       //debugPrint('[搜索服务] 请求头: $headers');
 
       final response = await http.get(
-        Uri.parse(url),
+        Uri.parse(fullUrl),
         headers: headers,
       ).timeout(
         const Duration(seconds: 15),
@@ -308,4 +332,4 @@ class SearchService {
     await prefs.remove(_configCacheKey);
     debugPrint('[搜索服务] 缓存已清除');
   }
-} 
+}

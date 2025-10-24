@@ -7,6 +7,7 @@ import 'package:nipaplay/models/watch_history_model.dart';
 import 'package:nipaplay/services/dandanplay_service.dart';
 import 'package:nipaplay/services/emby_service.dart';
 import 'package:nipaplay/services/danmaku_cache_manager.dart';
+import 'package:nipaplay/utils/network_settings.dart';
 import 'package:nipaplay/services/emby_episode_mapping_service.dart';
 import 'dart:ui';
 import 'package:nipaplay/widgets/nipaplay_theme/blur_button.dart';
@@ -16,6 +17,18 @@ class EmbyDandanplayMatcher {
   static final EmbyDandanplayMatcher instance = EmbyDandanplayMatcher._internal();
   
   EmbyDandanplayMatcher._internal();
+  
+  // 获取动态基础 URL
+  Future<String> _getApiBaseUrl() async {
+    final baseUrl = await NetworkSettings.getDandanplayServer();
+    return '$baseUrl/api/v2';
+  }
+  
+  // 构建完整的 API URL
+  Future<String> _buildApiUrl(String path) async {
+    final baseUrl = await _getApiBaseUrl();
+    return '$baseUrl$path';
+  }
 
   // 预计算哈希值和预匹配弹幕ID的方法
   // 
@@ -587,8 +600,9 @@ class EmbyDandanplayMatcher {
       });
       
       debugPrint('发送匹配请求到弹弹play API');
+      final apiUrl = await _buildApiUrl('/match');
       final response = await http.post(
-        Uri.parse('https://api.dandanplay.net/api/v2/match'),
+        Uri.parse(apiUrl),
         headers: headers,
         body: body,
       );
@@ -646,7 +660,8 @@ class EmbyDandanplayMatcher {
       final timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
       const apiPath = '/api/v2/search/anime';
       
-      final url = 'https://api.dandanplay.net/api/v2/search/anime?keyword=${Uri.encodeComponent(cleanedKeyword)}';
+      final path = '/search/anime?keyword=${Uri.encodeComponent(cleanedKeyword)}';
+      final url = await _buildApiUrl(path);
       debugPrint('请求URL: $url');
       
       final uri = Uri.parse(url);
@@ -723,7 +738,12 @@ class EmbyDandanplayMatcher {
       final timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
       final apiPath = '/api/v2/bangumi/$animeId';
       
-      final uri = Uri.parse('https://api.dandanplay.net$apiPath');
+      // 从 apiPath 中提取实际路径（去掉 /api/v2 前缀）
+      String actualPath = apiPath;
+      if (actualPath.startsWith('/api/v2')) {
+        actualPath = actualPath.substring('/api/v2'.length);
+      }
+      final uri = Uri.parse(await _buildApiUrl(actualPath));
       
       final headers = {
         'Accept': 'application/json',

@@ -43,7 +43,14 @@ class DandanplayService {
 
   /// 获取当前弹弹play API基础URL
   static Future<String> _getApiBaseUrl() async {
-    return await NetworkSettings.getDandanplayServer();
+    final baseUrl = await NetworkSettings.getDandanplayServer();
+    return '$baseUrl/api/v2';
+  }
+  
+  /// 构建完整的API URL
+  static Future<String> _buildApiUrl(String path) async {
+    final baseUrl = await _getApiBaseUrl();
+    return '$baseUrl$path';
   }
 
   // 预加载最近更新的动画数据
@@ -54,8 +61,7 @@ class DandanplayService {
       final appSecret = await getAppSecret();
       final timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
       const apiPath = '/api/v2/bangumi/recent';
-      final baseUrl = await _getApiBaseUrl();
-      final apiUrl = '$baseUrl/api/v2/bangumi/recent?limit=20';
+      final apiUrl = await _buildApiUrl('/bangumi/recent?limit=20');
       
       final response = await http.get(
         Uri.parse(apiUrl),
