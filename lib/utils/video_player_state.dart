@@ -296,24 +296,24 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
 
   // 新增回调：当发生严重播放错误且应弹出时调用
   Function()? onSeriousPlaybackErrorAndShouldPop;
-  
+
   // 视频识别和弹幕检查相关
   bool _videoRecognitionChecked = false;
   bool _isVideoMatched = false;
   bool _hasDanmakuData = false;
   Function()? _onVideoRecognitionFailed;
   Function()? _onDanmakuDataMissing;
-  
+
   // 设置视频识别失败回调
   set onVideoRecognitionFailed(Function()? callback) {
     _onVideoRecognitionFailed = callback;
   }
-  
+
   // 设置弹幕数据缺失回调
   set onDanmakuDataMissing(Function()? callback) {
     _onDanmakuDataMissing = callback;
   }
-  
+
   // 重置视频识别状态
   void resetVideoRecognitionState() {
     _videoRecognitionChecked = false;
@@ -2615,7 +2615,7 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
         if (videoInfo['isMatched'] == true) {
           // 设置视频匹配成功标志
           _isVideoMatched = true;
-          
+
           //debugPrint('视频匹配成功，开始加载弹幕...');
           _setStatus(PlayerStatus.recognizing, message: '视频识别成功，正在加载弹幕...');
 
@@ -2698,49 +2698,51 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
                     message: '弹幕加载完成 (${_danmakuList.length}条)');
 
                 // 如果是GPU模式，预构建字符集
-                  await _prebuildGPUDanmakuCharsetIfNeeded();
-                  
-                  // 设置弹幕数据存在标志
-                  _hasDanmakuData = _danmakuList.isNotEmpty;
-                } catch (e) {
-                  //debugPrint('弹幕加载/解析错误: $e\n$s');
-                  _danmakuList = [];
-                  _danmakuTracks.clear();
-                  _danmakuTrackEnabled.clear();
-                  _setStatus(PlayerStatus.recognizing, message: '弹幕加载失败，跳过');
-                  _hasDanmakuData = false;
-                }
+                await _prebuildGPUDanmakuCharsetIfNeeded();
+
+                // 设置弹幕数据存在标志
+                _hasDanmakuData = _danmakuList.isNotEmpty;
+              } catch (e) {
+                //debugPrint('弹幕加载/解析错误: $e\n$s');
+                _danmakuList = [];
+                _danmakuTracks.clear();
+                _danmakuTrackEnabled.clear();
+                _setStatus(PlayerStatus.recognizing, message: '弹幕加载失败，跳过');
+                _hasDanmakuData = false;
               }
-            } else {
-              //debugPrint('视频未匹配到信息');
-              _danmakuList = [];
-              _danmakuTracks.clear();
-              _danmakuTrackEnabled.clear();
-              _setStatus(PlayerStatus.recognizing, message: '未匹配到视频信息，跳过弹幕');
             }
+          } else {
+            //debugPrint('视频未匹配到信息');
+            _danmakuList = [];
+            _danmakuTracks.clear();
+            _danmakuTrackEnabled.clear();
+            _setStatus(PlayerStatus.recognizing, message: '未匹配到视频信息，跳过弹幕');
           }
-        } catch (e) {
-          //debugPrint('视频识别网络错误: $e\n$s');
-          _danmakuList = [];
-          _danmakuTracks.clear();
-          _danmakuTrackEnabled.clear();
-          _setStatus(PlayerStatus.recognizing, message: '无法连接服务器，跳过加载弹幕');
-        }
-        
-        // 设置识别检查完成标志
-        _videoRecognitionChecked = true;
-        
-        // 触发相应的回调
-        if (!_isVideoMatched && _onVideoRecognitionFailed != null) {
-          _onVideoRecognitionFailed!();
-        } else if (_isVideoMatched && !_hasDanmakuData && _onDanmakuDataMissing != null) {
-          _onDanmakuDataMissing!();
         }
       } catch (e) {
-        //debugPrint('识别视频或加载弹幕时发生严重错误: $e\n$s');
-        _videoRecognitionChecked = true;
-        rethrow;
+        //debugPrint('视频识别网络错误: $e\n$s');
+        _danmakuList = [];
+        _danmakuTracks.clear();
+        _danmakuTrackEnabled.clear();
+        _setStatus(PlayerStatus.recognizing, message: '无法连接服务器，跳过加载弹幕');
       }
+
+      // 设置识别检查完成标志
+      _videoRecognitionChecked = true;
+
+      // 触发相应的回调
+      if (!_isVideoMatched && _onVideoRecognitionFailed != null) {
+        _onVideoRecognitionFailed!();
+      } else if (_isVideoMatched &&
+          !_hasDanmakuData &&
+          _onDanmakuDataMissing != null) {
+        _onDanmakuDataMissing!();
+      }
+    } catch (e) {
+      //debugPrint('识别视频或加载弹幕时发生严重错误: $e\n$s');
+      _videoRecognitionChecked = true;
+      rethrow;
+    }
   }
 
   // 根据视频识别信息更新观看记录

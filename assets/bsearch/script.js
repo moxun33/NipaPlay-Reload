@@ -145,8 +145,7 @@ function setupContextMenu() {
 // 从infobox中提取在线播放平台
 function extractPlatformFromInfobox(infobox) {
     if (!infobox || !Array.isArray(infobox)) return null;
-    
-    const platformEntry = infobox.find(item => item.key === '在线播放平台');
+    const platformEntry = infobox.find(item => item.key === '在线播放平台'||item.key==='制作'||item.key==='製作');
     if (!platformEntry) return null;
     
     let platformValue = platformEntry.value;
@@ -188,13 +187,7 @@ async function fetchBangumiData() {
         // 返回模拟数据，避免因跨域问题导致页面空白
         return [
             { name_cn: '吞噬星空', infobox: [{ key: '在线播放平台', value: '腾讯视频' }] },
-            { name_cn: '三体', infobox: [{ key: '在线播放平台', value: 'bilibili' }] },
-            { name_cn: '鬼灭之刃', infobox: [{ key: '在线播放平台', value: 'bilibili' }] },
-            { name_cn: '进击的巨人', infobox: [{ key: '在线播放平台', value: 'bilibili' }] },
-            { name_cn: '全职高手', infobox: [{ key: '在线播放平台', value: '腾讯视频' }] },
-            { name_cn: '斗罗大陆', infobox: [{ key: '在线播放平台', value: '腾讯视频' }] },
-            { name_cn: '狐妖小红娘', infobox: [{ key: '在线播放平台', value: '腾讯视频' }] },
-            { name_cn: '一人之下', infobox: [{ key: '在线播放平台', value: '腾讯视频' }] }
+    
         ];
     }
 }
@@ -304,15 +297,27 @@ function updateCombinedUrl() {
 async function copyCombinedUrl() {
     if (!urlInput) return;
     
-    const videoUrl = urlInput.value.trim();
+    let videoUrl = urlInput.value.trim();
     if (!videoUrl) {
         alert("请输入视频URL");
         return;
     }
     
+    // 处理优酷视频URL格式转换
+    if (videoUrl.includes('v.youku.com/video?') && videoUrl.includes('vid=')) {
+        // 提取vid参数
+        const vidMatch = videoUrl.match(/vid=([^&]+)/);
+        if (vidMatch && vidMatch[1]) {
+            const vid = vidMatch[1];
+            // 转换为新的URL格式
+            videoUrl = `https://v.youku.com/v_show/id_${vid}.html`;
+            console.log(`已转换优酷URL: ${videoUrl}`);
+        }
+    }
+    
     // 生成完整的URL
     const baseUrl = DANMAKU_PROXY_URL;
-    const fullUrl = baseUrl + (videoUrl);
+    const fullUrl = baseUrl + encodeURIComponent(videoUrl);
     
     try {
         // 使用现代的剪贴板API
