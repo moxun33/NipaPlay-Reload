@@ -413,7 +413,7 @@ class _CupertinoMediaLibraryPageState extends State<CupertinoMediaLibraryPage> {
   }
 
   Widget _buildStatusRow(BuildContext context, SharedRemoteHost host) {
-    final statusColor = host.isOnline
+    final statusColor = host.isOnline == true
         ? CupertinoDynamicColor.resolve(CupertinoColors.activeGreen, context)
         : CupertinoDynamicColor.resolve(CupertinoColors.systemOrange, context);
     final labelColor =
@@ -437,7 +437,7 @@ class _CupertinoMediaLibraryPageState extends State<CupertinoMediaLibraryPage> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            host.isOnline ? '在线' : '等待连接',
+            host.isOnline == true ? '在线' : '等待连接',
             style: TextStyle(
               color: statusColor,
               fontSize: 12,
@@ -1078,9 +1078,7 @@ class _CupertinoLocalMediaLibraryCardState
     final child = Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: enabled
-            ? primaryColor
-            : primaryColor.withValues(alpha: 0.4),
+        color: enabled ? primaryColor : primaryColor.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -1246,7 +1244,8 @@ class _CupertinoLocalMediaLibraryCardState
     final buttonChild = Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: enabled ? backgroundColor : backgroundColor.withValues(alpha: 0.4),
+        color:
+            enabled ? backgroundColor : backgroundColor.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -1381,9 +1380,7 @@ class _CupertinoLocalMediaLibraryCardState
       AdaptivePopupMenuItem(
         label: '从文件管理器导入',
         value: 'file',
-        icon: PlatformInfo.isIOS26OrHigher()
-            ? 'folder'
-            : CupertinoIcons.folder,
+        icon: PlatformInfo.isIOS26OrHigher() ? 'folder' : CupertinoIcons.folder,
       ),
     ];
   }
@@ -2279,7 +2276,8 @@ class _MediaLibraryContentState extends State<_MediaLibraryContent> {
       onGenerateInitialRoutes: (_, __) {
         return [
           CupertinoPageRoute<void>(
-            builder: (routeContext) => ChangeNotifierProvider<SharedRemoteLibraryProvider>.value(
+            builder: (routeContext) =>
+                ChangeNotifierProvider<SharedRemoteLibraryProvider>.value(
               value: widget.provider,
               child: _CupertinoMediaLibraryListPage(
                 onAnimeTap: _handleAnimeTap,
@@ -2297,7 +2295,8 @@ class _MediaLibraryContentState extends State<_MediaLibraryContent> {
 
     await _navigatorKey.currentState?.push(
       CupertinoPageRoute<void>(
-        builder: (routeContext) => ChangeNotifierProvider<SharedRemoteLibraryProvider>.value(
+        builder: (routeContext) =>
+            ChangeNotifierProvider<SharedRemoteLibraryProvider>.value(
           value: widget.provider,
           child: CupertinoSharedAnimeDetailPage(
             anime: anime,

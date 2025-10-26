@@ -7,6 +7,7 @@ class SharedRemoteHost {
     required this.baseUrl,
     this.lastConnectedAt,
     this.lastError,
+    this.isOnline,
   });
 
   final String id;
@@ -14,6 +15,7 @@ class SharedRemoteHost {
   final String baseUrl;
   final DateTime? lastConnectedAt;
   final String? lastError;
+  final bool? isOnline;
 
   SharedRemoteHost copyWith({
     String? id,
@@ -21,6 +23,7 @@ class SharedRemoteHost {
     String? baseUrl,
     DateTime? lastConnectedAt,
     String? lastError,
+    bool? isOnline,
   }) {
     return SharedRemoteHost(
       id: id ?? this.id,
@@ -28,16 +31,18 @@ class SharedRemoteHost {
       baseUrl: baseUrl ?? this.baseUrl,
       lastConnectedAt: lastConnectedAt ?? this.lastConnectedAt,
       lastError: lastError,
+      isOnline: isOnline,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-    'displayName': displayName,
-    'baseUrl': baseUrl,
-    'lastConnectedAt': lastConnectedAt?.toIso8601String(),
-    'lastError': lastError,
+      'displayName': displayName,
+      'baseUrl': baseUrl,
+      'lastConnectedAt': lastConnectedAt?.toIso8601String(),
+      'lastError': lastError,
+      'isOnline': isOnline,
     };
   }
 
@@ -50,12 +55,15 @@ class SharedRemoteHost {
           ? DateTime.tryParse(json['lastConnectedAt'] as String)
           : null,
       lastError: json['lastError'] as String?,
+      isOnline: json['isOnline'] as bool?,
     );
   }
 
   static List<SharedRemoteHost> decodeList(String raw) {
     final decoded = json.decode(raw) as List<dynamic>;
-    return decoded.map((item) => SharedRemoteHost.fromJson(item as Map<String, dynamic>)).toList();
+    return decoded
+        .map((item) => SharedRemoteHost.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   static String encodeList(List<SharedRemoteHost> hosts) {
@@ -91,7 +99,9 @@ class SharedRemoteAnimeSummary {
       nameCn: json['nameCn'] as String?,
       summary: json['summary'] as String?,
       imageUrl: json['imageUrl'] as String?,
-      lastWatchTime: DateTime.tryParse(json['lastWatchTime'] as String? ?? '') ?? DateTime.now(),
+      lastWatchTime:
+          DateTime.tryParse(json['lastWatchTime'] as String? ?? '') ??
+              DateTime.now(),
       episodeCount: json['episodeCount'] as int? ?? 0,
       hasMissingFiles: json['hasMissingFiles'] as bool? ?? false,
     );
