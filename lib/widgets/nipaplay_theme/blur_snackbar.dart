@@ -7,7 +7,11 @@ class BlurSnackBar {
   static OverlayEntry? _currentOverlayEntry;
   static AnimationController? _controller; // 防止泄漏：保存当前动画控制器
 
-  static void show(BuildContext context, String content) {
+  static void show(BuildContext context, String content, {
+    List<Widget>? actions,
+    Duration? duration,
+    void Function()? onAutoClose,
+  }) {
     if (_currentOverlayEntry != null) {
       _currentOverlayEntry!.remove();
       _currentOverlayEntry = null;
@@ -52,33 +56,39 @@ class BlurSnackBar {
                       width: 1,
                     ),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: Text(
-                          content,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              content,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                            onPressed: () {
+                              _closeSnackBar(overlayEntry, onAutoClose);
+                            },
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
+                      if (actions != null && actions.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: actions,
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white70, size: 20),
-                        onPressed: () {
-              _controller?.reverse().then((_) {
-                            overlayEntry.remove();
-                            if (_currentOverlayEntry == overlayEntry) {
-                              _currentOverlayEntry = null;
-                _controller?.dispose();
-                _controller = null;
-                            }
-                          });
-                        },
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -91,19 +101,24 @@ class BlurSnackBar {
 
     overlay.insert(overlayEntry);
     _currentOverlayEntry = overlayEntry;
-  _controller!.forward();
+    _controller!.forward();
 
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(duration ?? const Duration(seconds: 2), () {
       if (overlayEntry.mounted) {
-    _controller?.reverse().then((_) {
-          overlayEntry.remove();
-          if (_currentOverlayEntry == overlayEntry) {
-            _currentOverlayEntry = null;
-      _controller?.dispose();
-      _controller = null;
-          }
-        });
+        _closeSnackBar(overlayEntry, onAutoClose);
       }
     });
   }
-} 
+
+  static void _closeSnackBar(OverlayEntry overlayEntry, void Function()? onAutoClose) {
+    _controller?.reverse().then((_) {
+      overlayEntry.remove();
+      if (_currentOverlayEntry == overlayEntry) {
+        _currentOverlayEntry = null;
+        _controller?.dispose();
+        _controller = null;
+        onAutoClose?.call();
+      }
+    });
+  }
+}

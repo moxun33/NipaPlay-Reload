@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:nipaplay/widgets/nipaplay_theme/blur_snackbar.dart';
 import 'package:provider/provider.dart';
 import 'package:nipaplay/utils/video_player_state.dart';
 import 'package:nipaplay/utils/globals.dart' as globals;
@@ -130,22 +131,32 @@ class _VideoPlayerUIState extends State<VideoPlayerUI> {
         // 设置视频识别失败回调
         _videoPlayerStateInstance?.onVideoRecognitionFailed = () {
           if (mounted && _videoPlayerStateInstance != null) {
-            debugPrint("视频识别失败，显示提示对话框");
-            BlurDialog.show<void>(
-              context: context,
-              title: '视频识别失败',
-              content: '无法自动识别视频的关联性，是否手动匹配弹幕？',
+            debugPrint("视频识别失败，显示提示消息");
+            BlurSnackBar.show(
+              context,
+              '无法自动识别视频的关联性，是否手动匹配弹幕？',
+              duration: const Duration(seconds: 10),
               actions: [
                 TextButton(
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    textStyle: const TextStyle(fontSize: 14),
+                  ),
                   child: const Text('取消'),
                   onPressed: () {
-                    Navigator.of(context).pop();
+                    // 取消按钮不需要额外操作，点击后消息会自动关闭
                   },
                 ),
                 TextButton(
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.blue.withOpacity(0.3),
+                    textStyle: const TextStyle(fontSize: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
                   child: const Text('手动匹配'),
                   onPressed: () async {
-                    Navigator.of(context).pop();
                     // 显示手动匹配界面
                     await _showManualDanmakuDialog();
                   },

@@ -28,7 +28,7 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
   Future<void> _loadData() async {
     final server = await NetworkSettings.getDandanplayServer();
     final servers = await NetworkSettings.getAllAvailableServers();
-    
+
     if (mounted) {
       setState(() {
         _currentServer = server;
@@ -53,17 +53,15 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
       setState(() {
         _currentServer = serverUrl;
       });
-      
+
       final serverName = _getServerDisplayName(serverUrl);
       BlurSnackBar.show(context, '弹弹play服务器已切换到: $serverName');
     }
   }
 
   String _getServerDisplayName(String serverUrl) {
-    final server = _servers.firstWhere(
-      (s) => s['url'] == serverUrl,
-      orElse: () => {'name': serverUrl}
-    );
+    final server = _servers.firstWhere((s) => s['url'] == serverUrl,
+        orElse: () => {'name': serverUrl});
     return server['name']!;
   }
 
@@ -83,54 +81,113 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
 
   void _showEditServerDialog({Map<String, String>? server}) {
     final isEdit = server != null;
-    final nameController = TextEditingController(text: isEdit ? server['name'] : '');
-    final urlController = TextEditingController(text: isEdit ? server['url'] : '');
-    final descController = TextEditingController(text: isEdit ? server['description'] : '');
+    final nameController =
+        TextEditingController(text: isEdit ? server['name'] : '');
+    final urlController =
+        TextEditingController(text: isEdit ? server['url'] : '');
+    final descController =
+        TextEditingController(text: isEdit ? server['description'] : '');
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.black.withOpacity(0.8),
-          title: Text(isEdit ? '编辑服务器' : '添加服务器'),
+          backgroundColor: Colors.grey[900]!.withOpacity(0.95),
+          title: Text(isEdit ? '编辑服务器' : '添加服务器',
+              style: const TextStyle(color: Colors.white)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '服务器名称',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    hintStyle: const TextStyle(color: Colors.white30),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.1),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide:
+                          BorderSide(color: Colors.white.withOpacity(0.2)),
+                    ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide:
+                          const BorderSide(color: Colors.blueAccent, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide:
+                          BorderSide(color: Colors.white.withOpacity(0.2)),
                     ),
                   ),
                   style: const TextStyle(color: Colors.white),
+                  cursorColor: Colors.white,
                 ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: urlController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '服务器URL',
                     hintText: 'http://example.com',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    hintStyle: const TextStyle(color: Colors.white30),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.1),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide:
+                          BorderSide(color: Colors.white.withOpacity(0.2)),
+                    ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide:
+                          const BorderSide(color: Colors.blueAccent, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide:
+                          BorderSide(color: Colors.white.withOpacity(0.2)),
                     ),
                   ),
                   style: const TextStyle(color: Colors.white),
+                  cursorColor: Colors.white,
+                  keyboardType: TextInputType.url,
+                  textInputAction: TextInputAction.next,
                 ),
+                const SizedBox(height: 16),
                 TextField(
                   controller: descController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '服务器描述（可选）',
-                    labelStyle: TextStyle(color: Colors.white70),
+                    labelStyle: const TextStyle(color: Colors.white70),
+                    hintStyle: const TextStyle(color: Colors.white30),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.1),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide:
+                          BorderSide(color: Colors.white.withOpacity(0.2)),
+                    ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide:
+                          const BorderSide(color: Colors.blueAccent, width: 2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide:
+                          BorderSide(color: Colors.white.withOpacity(0.2)),
                     ),
                   ),
                   style: const TextStyle(color: Colors.white),
+                  cursorColor: Colors.white,
                   maxLines: 2,
+                  minLines: 2,
                 ),
               ],
             ),
@@ -138,26 +195,40 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white70,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
               child: const Text('取消'),
             ),
-            TextButton(
+            ElevatedButton(
               onPressed: () async {
                 final name = nameController.text.trim();
                 final url = urlController.text.trim();
                 final description = descController.text.trim();
 
                 if (name.isEmpty || url.isEmpty) {
-                  BlurSnackBar.show(context, '请填写服务器名称和URL',);
+                  BlurSnackBar.show(
+                    context,
+                    '请填写服务器名称和URL',
+                  );
                   return;
                 }
 
                 if (!NetworkSettings.isValidUrl(url)) {
-                  BlurSnackBar.show(context, '请输入有效的URL（http或https开头）',);
+                  BlurSnackBar.show(
+                    context,
+                    '请输入有效的URL（http或https开头）',
+                  );
                   return;
                 }
 
                 Navigator.pop(context);
-                
+
                 if (isEdit) {
                   await NetworkSettings.updateCustomServer(
                     server!['url']!,
@@ -170,10 +241,13 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
                   await NetworkSettings.addCustomServer(name, url, description);
                   BlurSnackBar.show(context, '服务器已添加');
                 }
-                
+
                 await _refreshServers();
               },
-              child: Text(isEdit ? '保存' : '添加'),
+              child: Text(
+                isEdit ? '保存' : '添加',
+                style: const TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
@@ -183,9 +257,12 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
 
   Future<void> _deleteServer(String url) async {
     final isCurrentServer = _currentServer == url;
-    
+
     if (isCurrentServer) {
-      BlurSnackBar.show(context, '不能删除当前正在使用的服务器',);
+      BlurSnackBar.show(
+        context,
+        '不能删除当前正在使用的服务器',
+      );
       return;
     }
 
@@ -193,7 +270,7 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.black.withOpacity(0.8),
+          backgroundColor: const Color(0xFF3A3A3A),
           title: const Text('确认删除'),
           content: const Text('确定要删除此服务器吗？'),
           actions: [
@@ -201,7 +278,17 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
               onPressed: () => Navigator.pop(context),
               child: const Text('取消'),
             ),
-            TextButton(
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                elevation: 2,
+              ),
               onPressed: () async {
                 Navigator.pop(context);
                 await NetworkSettings.deleteCustomServer(url);
@@ -241,7 +328,7 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
             dropdownKey: _serverDropdownKey,
           ),
           const Divider(color: Colors.white12, height: 1),
-          
+
           // 显示当前服务器信息
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -288,7 +375,7 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
               ),
             ),
           ),
-          
+
           // 服务器列表管理
           Padding(
             padding: const EdgeInsets.all(16.0),
@@ -324,34 +411,40 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white.withOpacity(0.2),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Column(
                     children: _servers.map((server) {
                       final isCustom = server['isCustom'] == 'true';
                       final isSelected = _currentServer == server['url'];
-                      
+
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
                         color: Colors.black.withOpacity(0.3),
+                        elevation: 3,
+                        shadowColor: Colors.black.withOpacity(0.4),
                         child: Padding(
                           padding: const EdgeInsets.all(12),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     server['name']!,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 14,
-                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
                                     ),
                                   ),
                                   Row(
@@ -361,7 +454,7 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
                                           padding: EdgeInsets.only(right: 8),
                                           child: Icon(
                                             Ionicons.checkmark_circle,
-                                            color: Colors.green,
+                                            color: Colors.greenAccent,
                                             size: 16,
                                           ),
                                         ),
@@ -369,18 +462,29 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
                                         Row(
                                           children: [
                                             IconButton(
-                                              onPressed: () => _showEditServerDialog(server: server),
-                                              icon: const Icon(Ionicons.create_outline, size: 16),
+                                              onPressed: () =>
+                                                  _showEditServerDialog(
+                                                      server: server),
+                                              icon: const Icon(
+                                                  Ionicons.create_outline,
+                                                  size: 18),
                                               color: Colors.white70,
-                                              padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(minWidth: 32),
+                                              padding: const EdgeInsets.all(6),
+                                              constraints: const BoxConstraints(
+                                                  minWidth: 36),
+                                              tooltip: '编辑服务器',
                                             ),
                                             IconButton(
-                                              onPressed: () => _deleteServer(server['url']!),
-                                              icon: const Icon(Ionicons.trash_outline, size: 16),
-                                              color: Colors.red,
-                                              padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(minWidth: 32),
+                                              onPressed: () =>
+                                                  _deleteServer(server['url']!),
+                                              icon: const Icon(
+                                                  Ionicons.trash_outline,
+                                                  size: 18),
+                                              color: Colors.redAccent,
+                                              padding: const EdgeInsets.all(6),
+                                              constraints: const BoxConstraints(
+                                                  minWidth: 36),
+                                              tooltip: '删除服务器',
                                             ),
                                           ],
                                         ),
@@ -397,7 +501,8 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
                                   fontFamily: 'monospace',
                                 ),
                               ),
-                              if (server['description'] != null && server['description']!.isNotEmpty)
+                              if (server['description'] != null &&
+                                  server['description']!.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
@@ -410,12 +515,14 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
                                 ),
                               if (!isCustom)
                                 const Padding(
-                                  padding: EdgeInsets.only(top: 4),
+                                  padding: EdgeInsets.only(
+                                      top: 4, left: 8, right: 8),
                                   child: Text(
                                     '系统默认服务器，不可编辑或删除',
                                     style: TextStyle(
                                       color: Colors.white70,
-                                      fontSize: 11,
+                                      fontSize: 12,
+                                      fontStyle: FontStyle.italic,
                                     ),
                                   ),
                                 ),
