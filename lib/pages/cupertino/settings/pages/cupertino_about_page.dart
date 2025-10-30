@@ -10,6 +10,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:nipaplay/services/update_service.dart';
 
 import 'package:nipaplay/utils/cupertino_settings_colors.dart';
+import 'package:nipaplay/widgets/cupertino/cupertino_settings_group_card.dart';
+import 'package:nipaplay/widgets/cupertino/cupertino_settings_tile.dart';
 
 class CupertinoAboutPage extends StatefulWidget {
   const CupertinoAboutPage({super.key});
@@ -156,6 +158,8 @@ class _CupertinoAboutPageState extends State<CupertinoAboutPage> {
                         ],
                       ),
                       const SizedBox(height: 20),
+                      _buildSponsorshipSection(context),
+                      const SizedBox(height: 20),
                       Padding(
                         padding: const EdgeInsets.only(bottom: 20),
                         child: _buildCommunitySection(context, labelColor),
@@ -258,7 +262,8 @@ class _CupertinoAboutPageState extends State<CupertinoAboutPage> {
         .textStyle
         .copyWith(height: 1.6);
 
-    return AdaptiveFormSection.insetGrouped(
+    return CupertinoSettingsGroupCard(
+      margin: EdgeInsets.zero,
       backgroundColor: resolveSettingsSectionBackground(context),
       children: [
         Padding(
@@ -314,13 +319,88 @@ class _CupertinoAboutPageState extends State<CupertinoAboutPage> {
       ),
     ];
 
-    return AdaptiveFormSection.insetGrouped(
+    final tileColor = resolveSettingsTileBackground(context);
+
+    final List<Widget> children = [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Text(
+          '开源与社区',
+          style: CupertinoTheme.of(context)
+              .textTheme
+              .textStyle
+              .copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ),
+      _buildSettingsDivider(context),
+    ];
+
+    for (var i = 0; i < entries.length; i++) {
+      final item = entries[i];
+      children.add(
+        CupertinoSettingsTile(
+          leading: Icon(
+            item.icon,
+            color: labelColor,
+          ),
+          title: Text(item.label),
+          trailing: Icon(
+            CupertinoIcons.arrow_up_right,
+            color: resolveSettingsIconColor(context),
+          ),
+          backgroundColor: tileColor,
+          onTap: () => _launchURL(item.url),
+        ),
+      );
+      if (i < entries.length - 1) {
+        children.add(_buildSettingsDivider(context));
+      }
+    }
+
+    children.addAll(const [
+      SizedBox(height: 4),
+    ]);
+
+    children.add(
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Text(
+          '欢迎贡献代码，或将应用发布到更多平台。不会 Dart 也没关系，借助 AI 编程同样可以。',
+          style: CupertinoTheme.of(context)
+              .textTheme
+              .textStyle
+              .copyWith(
+                fontSize: 13,
+                color: CupertinoDynamicColor.resolve(
+                  CupertinoColors.secondaryLabel,
+                  context,
+                ),
+              ),
+        ),
+      ),
+    );
+
+    return CupertinoSettingsGroupCard(
+      margin: EdgeInsets.zero,
+      backgroundColor: resolveSettingsSectionBackground(context),
+      children: children,
+    );
+  }
+
+  Widget _buildSponsorshipSection(BuildContext context) {
+    final Color tileColor = resolveSettingsTileBackground(context);
+
+    return CupertinoSettingsGroupCard(
+      margin: EdgeInsets.zero,
       backgroundColor: resolveSettingsSectionBackground(context),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
-            '开源与社区',
+            '赞助支持',
             style: CupertinoTheme.of(context)
                 .textTheme
                 .textStyle
@@ -330,42 +410,64 @@ class _CupertinoAboutPageState extends State<CupertinoAboutPage> {
                 ),
           ),
         ),
-        ...entries.map(
-          (item) => AdaptiveListTile(
-            leading: Icon(
-              item.icon,
-              color: labelColor,
-            ),
-            title: Text(
-              item.label,
-              style: TextStyle(color: resolveSettingsPrimaryTextColor(context)),
-            ),
-            trailing: Icon(
-              CupertinoIcons.arrow_up_right,
-              color: resolveSettingsIconColor(context),
-            ),
-            backgroundColor: resolveSettingsTileBackground(context),
-            onTap: () => _launchURL(item.url),
-          ),
-        ),
-        const SizedBox(height: 4),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: Text(
-            '欢迎贡献代码，或将应用发布到更多平台。不会 Dart 也没关系，借助 AI 编程同样可以。',
+            '如果你喜欢 NipaPlay 并且希望支持项目的持续开发，欢迎通过爱发电进行赞助。',
             style: CupertinoTheme.of(context)
                 .textTheme
                 .textStyle
                 .copyWith(
-                  fontSize: 13,
+                  fontSize: 14,
                   color: CupertinoDynamicColor.resolve(
-                    CupertinoColors.secondaryLabel,
+                    CupertinoColors.label,
                     context,
                   ),
+                  height: 1.5,
                 ),
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Text(
+            '赞助者的名字将会出现在项目的 README 文件和每次软件更新后的关于页面名单中。',
+            style: CupertinoTheme.of(context)
+                .textTheme
+                .textStyle
+                .copyWith(
+                  fontSize: 14,
+                  color: CupertinoDynamicColor.resolve(
+                    CupertinoColors.label,
+                    context,
+                  ),
+                  height: 1.5,
+                ),
+          ),
+        ),
+        _buildSettingsDivider(context),
+        CupertinoSettingsTile(
+          leading: const Icon(
+            Ionicons.heart,
+            color: CupertinoColors.systemPink,
+          ),
+          title: const Text('爱发电赞助页面'),
+          trailing: Icon(
+            CupertinoIcons.arrow_up_right,
+            color: resolveSettingsIconColor(context),
+          ),
+          backgroundColor: tileColor,
+          onTap: () => _launchURL('https://afdian.com/a/irigas'),
+        ),
+        const SizedBox(height: 4),
       ],
+    );
+  }
+
+  Widget _buildSettingsDivider(BuildContext context) {
+    return Container(
+      height: 0.5,
+      margin: const EdgeInsetsDirectional.only(start: 20),
+      color: resolveSettingsSeparatorColor(context),
     );
   }
 }
