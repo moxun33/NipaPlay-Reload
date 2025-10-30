@@ -379,8 +379,9 @@ class _VideoPlayerUIState extends State<VideoPlayerUI> {
           await ManualDanmakuMatcher.instance.showManualMatchDialog(
         context,
         // 可以尝试从_videoPlayerStateInstance获取视频标题作为初始搜索文本
-        initialVideoTitle:
-            _videoPlayerStateInstance?.currentVideoPath?.split('/').last ?? '',
+        initialVideoTitle: Uri.decodeComponent(
+            _videoPlayerStateInstance?.currentVideoPath?.replaceAll('/', '.') ??
+                ''),
       );
       if (result != null) {
         debugPrint("手动匹配弹幕成功，获取到匹配结果");
