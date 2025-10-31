@@ -143,8 +143,9 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
   // 检查URL是否为AList格式 (主机/d/paths)
   bool _isAlistUrl(String url) {
     // 检查是否符合 AList URL 格式: 主机/d/ /dav/ 路径
+    // 支持 http://, https://, alist://, alists:// 协议
     final alistPattern =
-        RegExp(r'^https?://(?:[^/]+:)?[^/]+@[^/]+/(?:d|dav)/.*$');
+        RegExp(r'^(?:https?|alists?)://(?:[^/]+:)?[^/]+@[^/]+/(?:d|dav)/.*$');
     return alistPattern.hasMatch(url);
   }
 
@@ -161,10 +162,10 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
   // 从AList URL中提取基础URL
   String _extractAlistBaseUrl(String url) {
     // 提取协议和主机部分
-    // 匹配包含账号:密码的基础URL格式
-    final match = RegExp(r'^(https?://(?:[^/]+:)?[^/]+@[^/]+)').firstMatch(url);
+    // 匹配包含账号:密码的基础URL格式，支持 http://, https://, alist://, alists:// 协议
+    final match = RegExp(r'^(?:https?|alists?)://(?:[^/]+:)?[^/]+@[^/]+').firstMatch(url);
     if (match != null && match.groupCount > 0) {
-      return match.group(1)!;
+      return match.group(0)!;
     }
     return '';
   }
@@ -244,6 +245,7 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
       // 缓存文件信息并转换为播放列表格式
       _alistFileCache.clear();
       _fileSystemEpisodes = videoFiles.map((file) {
+        // 构建文件路径，保持原始协议（alist:// 或 alists://）
         final filePath =
             '${baseUrl}/d/${parentPath == '/' ? '' : parentPath.substring(1)}/${file.name}';
         _alistFileCache[filePath] = file;
