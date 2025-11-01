@@ -189,14 +189,16 @@ class AlistProvider extends ChangeNotifier {
         // 文件夹优先
         if (a.isDir && !b.isDir) return -1;
         if (!a.isDir && b.isDir) return 1;
-        
+
         // 尝试从文件名中提取数字序号进行排序
         if (!a.isDir && !b.isDir) {
           // 提取文件名中的数字
           final numRegex = RegExp(r'(\d+)');
-          final aMatches = numRegex.allMatches(a.name).map((m) => m.group(1)).toList();
-          final bMatches = numRegex.allMatches(b.name).map((m) => m.group(1)).toList();
-          
+          final aMatches =
+              numRegex.allMatches(a.name).map((m) => m.group(1)).toList();
+          final bMatches =
+              numRegex.allMatches(b.name).map((m) => m.group(1)).toList();
+
           // 如果两个文件名都包含数字，使用第一个数字作为排序依据
           if (aMatches.isNotEmpty && bMatches.isNotEmpty) {
             try {
@@ -208,7 +210,7 @@ class AlistProvider extends ChangeNotifier {
             }
           }
         }
-        
+
         // 回退到名称排序
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
@@ -245,8 +247,14 @@ class AlistProvider extends ChangeNotifier {
     }
 
     final streamUrl = _alistService.buildFileUrl('$_currentPath/${file.name}');
+
+    // 将HTTP/HTTPS URL转换为alist://或alists://协议来标记来源
+    final alistProtocolUrl = streamUrl.replaceFirstMapped(
+        RegExp(r'^(https?)://'),
+        (match) => match.group(1) == 'https' ? 'alists://' : 'alist://');
+
     final historyItem = WatchHistoryItem(
-      filePath: streamUrl,
+      filePath: alistProtocolUrl, // 使用alist://或alists://协议标记来源
       animeName: file.name,
       episodeTitle: file.name,
       lastPosition: 0,
@@ -257,10 +265,10 @@ class AlistProvider extends ChangeNotifier {
     );
 
     return PlayableItem(
-      videoPath: streamUrl,
+      videoPath: alistProtocolUrl, // 使用alist://或alists://协议作为标识符
       title: file.name,
       historyItem: historyItem,
-      actualPlayUrl: streamUrl,
+      actualPlayUrl: streamUrl, // 保持原始HTTP/HTTPS URL作为实际播放源
     );
   }
 

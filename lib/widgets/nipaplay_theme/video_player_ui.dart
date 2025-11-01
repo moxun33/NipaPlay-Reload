@@ -142,23 +142,13 @@ class _VideoPlayerUIState extends State<VideoPlayerUI> {
               actions: [
                 TextButton(
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    textStyle: const TextStyle(fontSize: 14),
-                  ),
-                  child: const Text('取消'),
-                  onPressed: () {
-                    // 取消按钮不需要额外操作，点击后消息会自动关闭
-                  },
-                ),
-                TextButton(
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.blue.withOpacity(0.3),
-                    textStyle: const TextStyle(fontSize: 14),
+                    backgroundColor: Colors.blue,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                  child: const Text('手动匹配'),
+                  child:
+                      const Text('手动匹配', style: TextStyle(color: Colors.white)),
                   onPressed: () async {
                     // 显示手动匹配界面
                     await _showManualDanmakuDialog();

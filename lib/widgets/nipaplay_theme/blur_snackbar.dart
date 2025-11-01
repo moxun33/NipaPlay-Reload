@@ -7,7 +7,9 @@ class BlurSnackBar {
   static OverlayEntry? _currentOverlayEntry;
   static AnimationController? _controller; // 防止泄漏：保存当前动画控制器
 
-  static void show(BuildContext context, String content, {
+  static void show(
+    BuildContext context,
+    String content, {
     List<Widget>? actions,
     Duration? duration,
     void Function()? onAutoClose,
@@ -20,7 +22,7 @@ class BlurSnackBar {
     final overlay = Overlay.of(context);
     late final OverlayEntry overlayEntry;
     late final Animation<double> animation;
-    
+
     // 如有旧控制器，先释放
     _controller?.dispose();
     _controller = AnimationController(
@@ -32,7 +34,7 @@ class BlurSnackBar {
       parent: _controller!,
       curve: Curves.easeInOut,
     );
-    
+    final haveActions = actions != null && actions.isNotEmpty;
     overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         bottom: 16,
@@ -45,23 +47,27 @@ class BlurSnackBar {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: context.watch<AppearanceSettingsProvider>().enableWidgetBlurEffect ? 10 : 0, sigmaY: context.watch<AppearanceSettingsProvider>().enableWidgetBlurEffect ? 10 : 0),
+                filter: ImageFilter.blur(
+                    sigmaX: context
+                            .watch<AppearanceSettingsProvider>()
+                            .enableWidgetBlurEffect
+                        ? 10
+                        : 0,
+                    sigmaY: context
+                            .watch<AppearanceSettingsProvider>()
+                            .enableWidgetBlurEffect
+                        ? 10
+                        : 0),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.75),
+                    color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withOpacity(0.2),
                       width: 1,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,16 +77,30 @@ class BlurSnackBar {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Expanded(
-                            child: Text(
-                              content,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
+                            child: haveActions
+                                ? Row(
+                                    children: [
+                                      Text(
+                                        content,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      ...actions
+                                    ],
+                                  )
+                                : Text(
+                                    content,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                            icon: const Icon(Icons.close,
+                                color: Colors.white70, size: 20),
                             onPressed: () {
                               _closeSnackBar(overlayEntry, onAutoClose);
                             },
@@ -89,13 +109,6 @@ class BlurSnackBar {
                           ),
                         ],
                       ),
-                      if (actions != null && actions.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: actions,
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -117,7 +130,8 @@ class BlurSnackBar {
     });
   }
 
-  static void _closeSnackBar(OverlayEntry overlayEntry, void Function()? onAutoClose) {
+  static void _closeSnackBar(
+      OverlayEntry overlayEntry, void Function()? onAutoClose) {
     _controller?.reverse().then((_) {
       overlayEntry.remove();
       if (_currentOverlayEntry == overlayEntry) {

@@ -104,12 +104,17 @@ class _AnimePageState extends State<AnimePage> with WidgetsBindingObserver {
         item.filePath.startsWith('https://');
     final isJellyfinProtocol = item.filePath.startsWith('jellyfin://');
     final isEmbyProtocol = item.filePath.startsWith('emby://');
+    final isAlistProtocol = item.filePath.startsWith('alist://') ||
+        item.filePath.startsWith('alists://');
 
     bool fileExists = false;
     String filePath = item.filePath;
     String? actualPlayUrl;
 
-    if (isNetworkUrl || isJellyfinProtocol || isEmbyProtocol) {
+    if (isNetworkUrl ||
+        isJellyfinProtocol ||
+        isEmbyProtocol ||
+        isAlistProtocol) {
       fileExists = true;
       if (isJellyfinProtocol) {
         try {
@@ -139,6 +144,24 @@ class _AnimePageState extends State<AnimePage> with WidgetsBindingObserver {
           }
         } catch (e) {
           BlurSnackBar.show(context, '获取Emby流媒体URL失败: $e');
+          return;
+        }
+      }
+
+      if (isAlistProtocol) {
+        try {
+          final alistService =
+              Provider.of<AlistProvider>(context, listen: false);
+          if (alistService.isConnected) {
+            actualPlayUrl = item.filePath.startsWith('alists://')
+                ? item.filePath.replaceFirst('alists://', 'https://')
+                : item.filePath.replaceFirst('alist://', 'http://');
+          } else {
+            BlurSnackBar.show(context, '未连接到AList服务器');
+            return;
+          }
+        } catch (e) {
+          BlurSnackBar.show(context, '获取AList流媒体URL失败: $e');
           return;
         }
       }

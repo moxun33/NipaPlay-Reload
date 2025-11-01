@@ -142,11 +142,7 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
 
   // 检查URL是否为AList格式 (主机/d/paths)
   bool _isAlistUrl(String url) {
-    // 检查是否符合 AList URL 格式: 主机/d/ /dav/ 路径
-    // 支持 http://, https://, alist://, alists:// 协议
-    final alistPattern =
-        RegExp(r'^(?:https?|alists?)://(?:[^/]+:)?[^/]+@[^/]+/(?:d|dav)/.*$');
-    return alistPattern.hasMatch(url);
+    return url.startsWith('alist://') || url.startsWith('alists://');
   }
 
   // 从AList URL中提取路径
@@ -162,9 +158,11 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
   // 从AList URL中提取基础URL
   String _extractAlistBaseUrl(String url) {
     // 提取协议和主机部分
-    // 匹配包含账号:密码的基础URL格式，支持 http://, https://, alist://, alists:// 协议
-    final match = RegExp(r'^(?:https?|alists?)://(?:[^/]+:)?[^/]+@[^/]+').firstMatch(url);
-    if (match != null && match.groupCount > 0) {
+    // 匹配包含 账号:密码的基础URL格式，支持 http://, https://
+    // user:password@ 是可选的
+    final match =
+        RegExp(r'^(?:https?)://(?:[^@/]+(?::[^@/]+)?@)?[^/]+').firstMatch(url);
+    if (match != null && match.groupCount >= 0) {
       return match.group(0)!;
     }
     return '';
@@ -185,7 +183,7 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
 
     // 如果你想要 Map 返回：
     final Map<String, dynamic> result = {
-      'scheme': scheme,
+      'scheme': scheme.replaceFirst('alist', 'http'),
       'host': host,
       'port': port,
       'username': username,
@@ -201,12 +199,14 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
       if (_currentFilePath == null) {
         throw Exception('当前文件路径为空');
       }
-
+      final actualUrl = _currentFilePath!.startsWith('alists://')
+          ? _currentFilePath!.replaceFirst('alists://', 'https://')
+          : _currentFilePath!.replaceFirst('alist://', 'http://');
       // 提取基础URL和路径
-      final baseUrl = _extractAlistBaseUrl(_currentFilePath!);
+      final baseUrl = _extractAlistBaseUrl(actualUrl);
       final hostInfo = _parseAlistBaseUrl(baseUrl);
 
-      final path = _extractAlistPath(_currentFilePath!);
+      final path = _extractAlistPath(actualUrl);
 
       debugPrint('[播放列表] AList模式: baseUrl=$baseUrl, path=$path');
 
@@ -214,7 +214,7 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
       await AlistService.instance.initialize();
 
       // 查找匹配的主机
-      final matchingHost = AlistService.instance.hosts.firstWhere(
+      AlistService.instance.hosts.firstWhere(
         (host) =>
             host.baseUrl ==
             '${hostInfo['scheme']}://${hostInfo['host']}:${hostInfo['port']}',
@@ -247,7 +247,7 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
       _fileSystemEpisodes = videoFiles.map((file) {
         // 构建文件路径，保持原始协议（alist:// 或 alists://）
         final filePath =
-            '${baseUrl}/d/${parentPath == '/' ? '' : parentPath.substring(1)}/${file.name}';
+            '${baseUrl.replaceFirst('http', 'alist')}/d/${parentPath == '/' ? '' : parentPath.substring(1)}/${file.name}';
         _alistFileCache[filePath] = file;
         return filePath;
       }).toList();
@@ -492,9 +492,12 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
             thumbnailPath: null,
             isFromScan: false,
           );
-
+          final actualUrl = filePath.startsWith('alists://')
+              ? filePath.replaceFirst('alists://', 'https://')
+              : filePath.replaceFirst('alist://', 'http://');
           // 直接使用AList URL播放
-          await videoState.initializePlayer(filePath, historyItem: historyItem);
+          await videoState.initializePlayer(filePath,
+              historyItem: historyItem, actualPlayUrl: actualUrl);
           debugPrint('[播放列表] AList文件播放完成');
         } else {
           // 本地文件模式：保持原有逻辑
@@ -567,7 +570,10 @@ class _PlaylistMenuState extends State<PlaylistMenu> {
 
     // 检查是否为AList URL
     if (_isAlistUrl(filePath)) {
-      final cachedFile = _alistFileCache[filePath];
+      final alistPath = filePath.startsWith('alists://')
+          ? _currentFilePath!.replaceFirst('alists://', 'https://')
+          : _currentFilePath!.replaceFirst('alist://', 'http://');
+      final cachedFile = _alistFileCache[alistPath];
       if (cachedFile != null) {
         return cachedFile.name;
       }

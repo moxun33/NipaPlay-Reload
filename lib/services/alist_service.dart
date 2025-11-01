@@ -249,14 +249,16 @@ class AlistService {
       try {
         decodedBody = json.decode(response.body);
         if (decodedBody is! Map<String, dynamic>) {
-          throw Exception('无效的响应格式: 期望Map<String, dynamic>但得到${decodedBody.runtimeType}');
+          throw Exception(
+              '无效的响应格式: 期望Map<String, dynamic>但得到${decodedBody.runtimeType}');
         }
       } catch (e) {
         debugPrint('JSON解码失败: $e，响应体: ${response.body}');
         throw Exception('解析服务器响应失败: $e');
       }
-      
-      final authResponse = AlistAuthResponse.fromJson(decodedBody as Map<String, dynamic>);
+
+      final authResponse =
+          AlistAuthResponse.fromJson(decodedBody as Map<String, dynamic>);
       if (authResponse.code != 200) {
         throw Exception('认证失败: ${authResponse.message}');
       }
@@ -314,14 +316,6 @@ class AlistService {
     }
 
     try {
-      // 如果是已url编码，解码
-      if (path.contains('%')) {
-        try {
-          path = Uri.decodeComponent(path);
-        } catch (e) {
-          debugPrint('URL解码失败: $e');
-        }
-      }
       final token = await _ensureValidToken(host);
       final uri = Uri.parse('${host.baseUrl}/api/fs/list');
 

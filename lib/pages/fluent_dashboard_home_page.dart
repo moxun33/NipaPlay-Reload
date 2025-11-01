@@ -1383,13 +1383,37 @@ class _FluentDashboardHomePageState extends State<FluentDashboardHomePage>
               return _buildDefaultThumbnail();
             }
             try {
+              // 验证图像数据是否有效
+              final imageData = snapshot.data!;
+              if (imageData.isEmpty) {
+                return _buildDefaultThumbnail();
+              }
+              
+              // 使用Image.memory的errorBuilder来处理无效图像数据
               return Image.memory(
-                snapshot.data!,
+                imageData,
                 fit: BoxFit.cover,
                 width: double.infinity,
                 height: double.infinity,
+                errorBuilder: (context, error, stackTrace) {
+                  debugPrint('图像加载错误: $error');
+                  // 删除损坏的缩略图文件
+                  if (item.thumbnailPath != null) {
+                    try {
+                      final thumbnailFile = File(item.thumbnailPath!);
+                      if (thumbnailFile.existsSync()) {
+                        thumbnailFile.deleteSync();
+                        debugPrint('已删除损坏的缩略图文件: ${item.thumbnailPath}');
+                      }
+                    } catch (e) {
+                      debugPrint('删除缩略图文件失败: $e');
+                    }
+                  }
+                  return _buildDefaultThumbnail();
+                },
               );
             } catch (e) {
+              debugPrint('图像处理异常: $e');
               return _buildDefaultThumbnail();
             }
           },
