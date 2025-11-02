@@ -9,31 +9,32 @@ import 'package:nipaplay/utils/global_hotkey_manager.dart';
 import 'package:nipaplay/utils/network_settings.dart';
 
 /// 手动弹幕匹配对话框
-/// 
+///
 /// 显示搜索动画和选择剧集的界面
 class ManualDanmakuMatchDialog extends StatefulWidget {
   final String? initialVideoTitle;
-  
+
   const ManualDanmakuMatchDialog({super.key, this.initialVideoTitle});
 
   @override
-  State<ManualDanmakuMatchDialog> createState() => _ManualDanmakuMatchDialogState();
+  State<ManualDanmakuMatchDialog> createState() =>
+      _ManualDanmakuMatchDialogState();
 }
 
-class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog> 
+class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
     with GlobalHotkeyManagerMixin {
   final TextEditingController _searchController = TextEditingController();
-  
+
   bool _isSearching = false;
   bool _showEpisodesView = false;
   bool _isLoadingEpisodes = false;
-  
+
   String _searchMessage = '';
   String _episodesMessage = '';
-  
+
   List<Map<String, dynamic>> _currentMatches = [];
   List<Map<String, dynamic>> _currentEpisodes = [];
-  
+
   Map<String, dynamic>? _selectedAnime;
   Map<String, dynamic>? _selectedEpisode;
 
@@ -103,7 +104,7 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
     final baseUrl = await NetworkSettings.getDandanplayServer();
     return '$baseUrl/api/v2';
   }
-  
+
   /// 构建完整的 API URL
   Future<String> _buildApiUrl(String path) async {
     final baseUrl = await _getApiBaseUrl();
@@ -118,34 +119,31 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
 
     try {
       final appSecret = await DandanplayService.getAppSecret();
-      final timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
+      final timestamp =
+          (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
       final path = '/search/anime?keyword=${Uri.encodeComponent(keyword)}';
-      
+
       final url = await _buildApiUrl(path);
-      
+
       final response = await http.get(
         Uri.parse(url),
         headers: {
           'Accept': 'application/json',
           'X-AppId': DandanplayService.appId,
           'X-Signature': DandanplayService.generateSignature(
-            DandanplayService.appId, 
-            timestamp, 
-            path, 
-            appSecret
-          ),
+              DandanplayService.appId, timestamp, path, appSecret),
           'X-Timestamp': '$timestamp',
         },
       );
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        
+
         if (data['animes'] != null && data['animes'] is List) {
           return List<Map<String, dynamic>>.from(data['animes']);
         }
       }
-      
+
       return [];
     } catch (e) {
       debugPrint('搜索动画时出错: $e');
@@ -182,7 +180,9 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
 
     try {
       // 确保animeId是整数类型
-      final animeId = anime['animeId'] is int ? anime['animeId'] : int.tryParse(anime['animeId'].toString());
+      final animeId = anime['animeId'] is int
+          ? anime['animeId']
+          : int.tryParse(anime['animeId'].toString());
       if (animeId == null) {
         setState(() {
           _isLoadingEpisodes = false;
@@ -190,50 +190,49 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
         });
         return;
       }
-      
-      debugPrint('正在加载动画剧集，animeId: $animeId, animeTitle: ${anime['animeTitle']}');
-      
+
+      debugPrint(
+          '正在加载动画剧集，animeId: $animeId, animeTitle: ${anime['animeTitle']}');
+
       final appSecret = await DandanplayService.getAppSecret();
-      final timestamp = (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
+      final timestamp =
+          (DateTime.now().toUtc().millisecondsSinceEpoch / 1000).round();
       final path = '/bangumi/$animeId';
-      
+
       final url = await _buildApiUrl(path);
       debugPrint('API请求URL: $url');
-      
+
       final response = await http.get(
         Uri.parse(url),
         headers: {
           'Accept': 'application/json',
           'X-AppId': DandanplayService.appId,
           'X-Signature': DandanplayService.generateSignature(
-            DandanplayService.appId, 
-            timestamp, 
-            path, 
-            appSecret
-          ),
+              DandanplayService.appId, timestamp, path, appSecret),
           'X-Timestamp': '$timestamp',
         },
       );
-      
+
       setState(() {
         _isLoadingEpisodes = false;
       });
-      
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        
+
         // 添加调试信息
         debugPrint('API响应成功，检查数据结构');
         debugPrint('根级别success: ${data['success']}');
         debugPrint('根级别errorCode: ${data['errorCode']}');
-        
+
         // 检查API是否成功
         if (data['success'] == true && data['bangumi'] != null) {
           final bangumi = data['bangumi'];
           debugPrint('bangumi字段存在，检查episodes...');
-          
+
           if (bangumi['episodes'] != null && bangumi['episodes'] is List) {
-            final episodes = List<Map<String, dynamic>>.from(bangumi['episodes']);
+            final episodes =
+                List<Map<String, dynamic>>.from(bangumi['episodes']);
             setState(() {
               _currentEpisodes = episodes;
               _episodesMessage = episodes.isEmpty ? '该动画暂无剧集信息' : '';
@@ -279,13 +278,13 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
   /// 完成选择
   void _completeSelection() {
     Map<String, dynamic> result = {};
-    
+
     if (_selectedAnime != null) {
       // 添加动画信息到结果中
       result['anime'] = _selectedAnime;
       result['animeId'] = _selectedAnime!['animeId'];
       result['animeTitle'] = _selectedAnime!['animeTitle'];
-      
+
       // 确定要使用的剧集
       Map<String, dynamic>? episodeToUse;
       if (_selectedEpisode != null) {
@@ -293,7 +292,7 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
       } else if (_currentEpisodes.isNotEmpty) {
         episodeToUse = _currentEpisodes.first;
       }
-      
+
       if (episodeToUse != null) {
         result['episode'] = episodeToUse;
         result['episodeId'] = episodeToUse['episodeId'];
@@ -302,7 +301,7 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
         debugPrint('警告: 没有匹配到任何剧集信息，episodeId可能为空');
       }
     }
-    
+
     Navigator.of(context).pop(result);
   }
 
@@ -313,10 +312,11 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
     final size = window.physicalSize / window.devicePixelRatio;
     final shortestSide = size.width < size.height ? size.width : size.height;
     final bool isRealPhone = isPhone && shortestSide < 600;
-    
+
     // 调试信息
-    debugPrint('设备判断: isPhone=$isPhone, isTablet=$isTablet, isRealPhone=$isRealPhone, shortestSide=$shortestSide, _showEpisodesView=$_showEpisodesView');
-    
+    debugPrint(
+        '设备判断: isPhone=$isPhone, isTablet=$isTablet, isRealPhone=$isRealPhone, shortestSide=$shortestSide, _showEpisodesView=$_showEpisodesView');
+
     if (isRealPhone) {
       // 真正的手机设备使用左右布局（包括选择剧集界面）
       debugPrint('使用左右布局');
@@ -326,13 +326,17 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
           // 左半部分：搜索区域或返回按钮
           Expanded(
             flex: 1,
-            child: _showEpisodesView ? _buildEpisodesLeftSection() : _buildSearchSection(),
+            child: _showEpisodesView
+                ? _buildEpisodesLeftSection()
+                : _buildSearchSection(),
           ),
           const SizedBox(width: 12),
           // 右半部分：搜索结果或剧集列表
           Expanded(
             flex: 1,
-            child: _showEpisodesView ? _buildEpisodesSection() : _buildResultsSection(),
+            child: _showEpisodesView
+                ? _buildEpisodesSection()
+                : _buildResultsSection(),
           ),
         ],
       );
@@ -349,16 +353,22 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('搜索', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+        const Text('搜索',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         TextField(
           controller: _searchController,
           style: const TextStyle(color: Colors.white, fontSize: 13),
           decoration: InputDecoration(
             hintText: '动画名称',
-            hintStyle: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+            hintStyle:
+                TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             border: OutlineInputBorder(
               borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
               borderRadius: BorderRadius.circular(6),
@@ -386,14 +396,16 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
               padding: const EdgeInsets.symmetric(vertical: 8),
               textStyle: const TextStyle(fontSize: 12),
             ),
-            child: _isSearching ? const SizedBox(
-              width: 12,
-              height: 12,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            ) : const Text('搜索'),
+            child: _isSearching
+                ? const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Text('搜索'),
           ),
         ),
         if (_searchMessage.isNotEmpty) ...[
@@ -401,15 +413,17 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: _searchMessage.contains('出错') 
-                  ? Colors.red.withOpacity(0.2) 
+              color: _searchMessage.contains('出错')
+                  ? Colors.red.withOpacity(0.2)
                   : Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              _searchMessage, 
+              _searchMessage,
               style: TextStyle(
-                color: _searchMessage.contains('出错') ? Colors.redAccent : Colors.white70,
+                color: _searchMessage.contains('出错')
+                    ? Colors.redAccent
+                    : Colors.white70,
                 fontSize: 11,
               ),
             ),
@@ -424,9 +438,12 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('结果', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+        const Text('结果',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
-        
         Expanded(
           child: Container(
             decoration: BoxDecoration(
@@ -437,53 +454,57 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
                 width: 0.5,
               ),
             ),
-            child: _isSearching 
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                  )
-                )
-              : _currentMatches.isEmpty
+            child: _isSearching
                 ? const Center(
-                    child: Text('暂无结果', style: TextStyle(color: Colors.white54, fontSize: 12))
-                  )
-                : ListView.builder(
-                    itemCount: _currentMatches.length,
-                    itemBuilder: (context, index) {
-                      final match = _currentMatches[index];
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.1),
-                            width: 0.5,
-                          ),
-                        ),
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          title: Text(
-                            match['animeTitle'] ?? '未知动画',
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(
-                            '${match['typeDescription'] ?? '未知'} | ${match['episodeCount'] ?? 0}集',
-                            style: const TextStyle(color: Colors.white70, fontSize: 10),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onTap: () => _loadAnimeEpisodes(match),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                    child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                  ))
+                : _currentMatches.isEmpty
+                    ? const Center(
+                        child: Text('暂无结果',
+                            style:
+                                TextStyle(color: Colors.white54, fontSize: 12)))
+                    : ListView.builder(
+                        itemCount: _currentMatches.length,
+                        itemBuilder: (context, index) {
+                          final match = _currentMatches[index];
+                          return Container(
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.1),
+                                width: 0.5,
+                              ),
+                            ),
+                            child: ListTile(
+                              dense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              title: Text(
+                                match['animeTitle'] ?? '未知动画',
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                '${match['typeDescription'] ?? '未知'} | ${match['episodeCount'] ?? 0}集',
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 10),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () => _loadAnimeEpisodes(match),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
           ),
         ),
       ],
@@ -516,7 +537,8 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('已选动画:',
-                          style: TextStyle(color: Colors.white70, fontSize: 12)),
+                          style:
+                              TextStyle(color: Colors.white70, fontSize: 12)),
                       const SizedBox(height: 4),
                       Text(_selectedAnime!['animeTitle'] ?? '未知动画',
                           style: const TextStyle(
@@ -528,8 +550,10 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
                   ),
                 ),
                 TextButton.icon(
-                  icon: const Icon(Icons.arrow_back, size: 16, color: Colors.white70),
-                  label: const Text('返回', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                  icon: const Icon(Icons.arrow_back,
+                      size: 16, color: Colors.white70),
+                  label: const Text('返回',
+                      style: TextStyle(fontSize: 12, color: Colors.white70)),
                   onPressed: _backToAnimeSelection,
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -539,7 +563,7 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
               ],
             ),
           ),
-        
+
         // 手动搜索区域（只在动画选择视图中显示）
         if (!_showEpisodesView)
           Container(
@@ -561,16 +585,20 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: '输入动画名称搜索',
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                      hintStyle:
+                          TextStyle(color: Colors.white.withOpacity(0.6)),
                       isDense: true,
                       border: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                        borderSide:
+                            BorderSide(color: Colors.white.withOpacity(0.3)),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                        borderSide:
+                            BorderSide(color: Colors.white.withOpacity(0.3)),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white.withOpacity(0.6)),
+                        borderSide:
+                            BorderSide(color: Colors.white.withOpacity(0.6)),
                       ),
                     ),
                     onSubmitted: (_) => _performSearch(),
@@ -589,29 +617,34 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
               ],
             ),
           ),
-        
+
         // 动画选择视图
         if (!_showEpisodesView) ...[
-          const Text('搜索结果:', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+          const Text('搜索结果:',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
-          
           if (_searchMessage.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
-                color: _searchMessage.contains('出错') 
-                    ? Colors.red.withOpacity(0.2) 
+                color: _searchMessage.contains('出错')
+                    ? Colors.red.withOpacity(0.2)
                     : Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(_searchMessage, 
+              child: Text(
+                _searchMessage,
                 style: TextStyle(
-                  color: _searchMessage.contains('出错') ? Colors.redAccent : Colors.white70,
+                  color: _searchMessage.contains('出错')
+                      ? Colors.redAccent
+                      : Colors.white70,
                 ),
               ),
             ),
-          
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -622,74 +655,80 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
                   width: 0.5,
                 ),
               ),
-              child: _isSearching 
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                    )
-                  )
-                : _currentMatches.isEmpty
+              child: _isSearching
                   ? const Center(
-                      child: Text('没有搜索结果', style: TextStyle(color: Colors.white54))
-                    )
-                  : ListView.builder(
-                      itemCount: _currentMatches.length,
-                      itemBuilder: (context, index) {
-                        final match = _currentMatches[index];
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.1),
-                              width: 0.5,
-                            ),
-                          ),
-                          child: ListTile(
-                            title: Text(
-                              match['animeTitle'] ?? '未知动画',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            subtitle: Text(
-                              '类型: ${match['typeDescription'] ?? '未知'} | 剧集数: ${match['episodeCount'] ?? 0}',
-                              style: const TextStyle(color: Colors.white70, fontSize: 12),
-                            ),
-                            onTap: () => _loadAnimeEpisodes(match),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                      child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                    ))
+                  : _currentMatches.isEmpty
+                      ? const Center(
+                          child: Text('没有搜索结果',
+                              style: TextStyle(color: Colors.white54)))
+                      : ListView.builder(
+                          itemCount: _currentMatches.length,
+                          itemBuilder: (context, index) {
+                            final match = _currentMatches[index];
+                            return Container(
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.1),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: ListTile(
+                                title: Text(
+                                  match['animeTitle'] ?? '未知动画',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                subtitle: Text(
+                                  '类型: ${match['typeDescription'] ?? '未知'} | 剧集数: ${match['episodeCount'] ?? 0}',
+                                  style: const TextStyle(
+                                      color: Colors.white70, fontSize: 12),
+                                ),
+                                onTap: () => _loadAnimeEpisodes(match),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
             ),
           ),
         ],
-        
+
         // 剧集选择视图
         if (_showEpisodesView) ...[
-          const Text('选择剧集:', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+          const Text('选择剧集:',
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
-          
           if (_episodesMessage.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 8),
               decoration: BoxDecoration(
-                color: _episodesMessage.contains('出错') 
-                    ? Colors.red.withOpacity(0.2) 
+                color: _episodesMessage.contains('出错')
+                    ? Colors.red.withOpacity(0.2)
                     : Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(_episodesMessage, 
+              child: Text(
+                _episodesMessage,
                 style: TextStyle(
-                  color: _episodesMessage.contains('出错') ? Colors.redAccent : Colors.white70,
+                  color: _episodesMessage.contains('出错')
+                      ? Colors.redAccent
+                      : Colors.white70,
                   fontSize: 12,
                 ),
               ),
             ),
-          
           Expanded(
             child: Container(
               decoration: BoxDecoration(
@@ -701,70 +740,72 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
                 ),
               ),
               child: _isLoadingEpisodes
-                ? const Center(
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                    )
-                  )
-                : _currentEpisodes.isEmpty
                   ? const Center(
-                      child: Text('没有可用的剧集', style: TextStyle(color: Colors.white54))
-                    )
-                  : ListView.builder(
-                      itemCount: _currentEpisodes.length,
-                      itemBuilder: (context, index) {
-                        final episode = _currentEpisodes[index];
-                        final isSelected = _selectedEpisode != null && 
-                                          _selectedEpisode!['episodeId'] == episode['episodeId'];
-                        
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: isSelected 
-                              ? Colors.green.withOpacity(0.2)
-                              : Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: isSelected 
-                                ? Colors.green.withOpacity(0.5)
-                                : Colors.white.withOpacity(0.1),
-                              width: 0.5,
-                            ),
-                          ),
-                          child: ListTile(
-                            title: Text(
-                              '${episode['episodeTitle'] ?? '未知剧集'}',
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                            trailing: isSelected 
-                              ? const Icon(Icons.check_circle, color: Colors.green)
-                              : null,
-                            onTap: () {
-                              setState(() {
-                                _selectedEpisode = episode;
-                              });
-                            },
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                      child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                    ))
+                  : _currentEpisodes.isEmpty
+                      ? const Center(
+                          child: Text('没有可用的剧集',
+                              style: TextStyle(color: Colors.white54)))
+                      : ListView.builder(
+                          itemCount: _currentEpisodes.length,
+                          itemBuilder: (context, index) {
+                            final episode = _currentEpisodes[index];
+                            final isSelected = _selectedEpisode != null &&
+                                _selectedEpisode!['episodeId'] ==
+                                    episode['episodeId'];
+
+                            return Container(
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Colors.green.withOpacity(0.2)
+                                    : Colors.white.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? Colors.green.withOpacity(0.5)
+                                      : Colors.white.withOpacity(0.1),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: ListTile(
+                                title: Text(
+                                  '${episode['episodeTitle'] ?? '未知剧集'}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                trailing: isSelected
+                                    ? const Icon(Icons.check_circle,
+                                        color: Colors.green)
+                                    : null,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedEpisode = episode;
+                                  });
+                                },
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
             ),
           ),
-          
           if (_currentEpisodes.isNotEmpty)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12),
               alignment: Alignment.center,
               child: Text(
-                _selectedEpisode == null 
-                  ? '请选择一个剧集来获取正确的弹幕'
-                  : '已选择剧集，点击"确认选择"继续',
+                _selectedEpisode == null
+                    ? '请选择一个剧集来获取正确的弹幕'
+                    : '已选择剧集，点击"确认选择"继续',
                 style: TextStyle(
-                  color: _selectedEpisode == null ? Colors.white70 : Colors.green
-                ),
+                    color: _selectedEpisode == null
+                        ? Colors.white70
+                        : Colors.green),
               ),
             ),
         ],
@@ -778,9 +819,13 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 标题
-        const Text('选择剧集', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+        const Text('选择剧集',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500)),
         const SizedBox(height: 12),
-        
+
         // 显示当前选择的动画
         if (_selectedAnime != null)
           Container(
@@ -796,7 +841,8 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('已选动画:', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                const Text('已选动画:',
+                    style: TextStyle(color: Colors.white70, fontSize: 12)),
                 const SizedBox(height: 4),
                 Text(
                   _selectedAnime!['animeTitle'] ?? '未知动画',
@@ -812,11 +858,14 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
                 SizedBox(
                   width: double.infinity,
                   child: TextButton.icon(
-                    icon: const Icon(Icons.arrow_back, size: 16, color: Colors.white70),
-                    label: const Text('返回', style: TextStyle(fontSize: 12, color: Colors.white70)),
+                    icon: const Icon(Icons.arrow_back,
+                        size: 16, color: Colors.white70),
+                    label: const Text('返回',
+                        style: TextStyle(fontSize: 12, color: Colors.white70)),
                     onPressed: _backToAnimeSelection,
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       minimumSize: const Size(0, 32),
                       backgroundColor: Colors.white.withOpacity(0.1),
                     ),
@@ -834,29 +883,35 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('剧集列表', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+        const Text('剧集列表',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
-        
+
         // 错误或状态消息
         if (_episodesMessage.isNotEmpty)
           Container(
             padding: const EdgeInsets.all(8),
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
-              color: _episodesMessage.contains('出错') 
-                  ? Colors.red.withOpacity(0.2) 
+              color: _episodesMessage.contains('出错')
+                  ? Colors.red.withOpacity(0.2)
                   : Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              _episodesMessage, 
+              _episodesMessage,
               style: TextStyle(
-                color: _episodesMessage.contains('出错') ? Colors.redAccent : Colors.white70,
+                color: _episodesMessage.contains('出错')
+                    ? Colors.redAccent
+                    : Colors.white70,
                 fontSize: 12,
               ),
             ),
           ),
-        
+
         // 剧集列表
         Expanded(
           child: Container(
@@ -868,59 +923,61 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
                 width: 0.5,
               ),
             ),
-            child: _isLoadingEpisodes 
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
-                  )
-                )
-              : _currentEpisodes.isEmpty
+            child: _isLoadingEpisodes
                 ? const Center(
-                    child: Text('暂无剧集', style: TextStyle(color: Colors.white54, fontSize: 12))
-                  )
-                : ListView.builder(
-                    itemCount: _currentEpisodes.length,
-                    itemBuilder: (context, index) {
-                      final episode = _currentEpisodes[index];
-                      return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.1),
-                            width: 0.5,
-                          ),
-                        ),
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          title: Text(
-                            episode['episodeTitle'] ?? '第${episode['episodeId']}话',
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onTap: () {
-                            setState(() {
-                              _selectedEpisode = episode;
-                            });
-                            _completeSelection();
-                          },
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                    child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                  ))
+                : _currentEpisodes.isEmpty
+                    ? const Center(
+                        child: Text('暂无剧集',
+                            style:
+                                TextStyle(color: Colors.white54, fontSize: 12)))
+                    : ListView.builder(
+                        itemCount: _currentEpisodes.length,
+                        itemBuilder: (context, index) {
+                          final episode = _currentEpisodes[index];
+                          return Container(
+                            margin: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.1),
+                                width: 0.5,
+                              ),
+                            ),
+                            child: ListTile(
+                              dense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              title: Text(
+                                episode['episodeTitle'] ??
+                                    '第${episode['episodeId']}话',
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              onTap: () {
+                                setState(() {
+                                  _selectedEpisode = episode;
+                                });
+                                _completeSelection();
+                              },
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
           ),
         ),
       ],
     );
   }
-
-
 
   /// 处理ESC键事件
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
@@ -938,13 +995,13 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
   @override
   Widget build(BuildContext context) {
     debugPrint('=== 新版ManualDanmakuMatchDialog.build() 调用 ===');
-    
+
     // 检查是否为真正的手机设备
     final window = WidgetsBinding.instance.window;
     final size = window.physicalSize / window.devicePixelRatio;
     final shortestSide = size.width < size.height ? size.width : size.height;
     final bool isRealPhone = isPhone && shortestSide < 600;
-    
+
     return Focus(
       autofocus: true,
       onKeyEvent: _handleKeyEvent,
@@ -963,128 +1020,171 @@ class _ManualDanmakuMatchDialogState extends State<ManualDanmakuMatchDialog>
               // 阻止对话框内容区域的点击事件冒泡
               onTap: () {},
               child: Container(
-          width: MediaQuery.of(context).size.width * 0.85,
-          height: MediaQuery.of(context).size.height * 0.75,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.3),
-              width: 0.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.2),
-                blurRadius: 5,
-                spreadRadius: 1,
-                offset: const Offset(1, 1),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 标题栏 - 非手机设备显示
-              if (!isRealPhone) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _showEpisodesView ? '选择匹配的剧集' : '手动匹配弹幕',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white70),
-                      onPressed: () => Navigator.of(context).pop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                width: MediaQuery.of(context).size.width * 0.85,
+                height: MediaQuery.of(context).size.height * 0.75,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.3),
+                    width: 0.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 5,
+                      spreadRadius: 1,
+                      offset: const Offset(1, 1),
                     ),
                   ],
                 ),
-                const Divider(color: Colors.white24),
-                const SizedBox(height: 8),
-              ],
-              
-              // 内容区域
-              Expanded(
-                child: Stack(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 主要内容
-                    _buildContentArea(),
-                    
-                    // 手机设备的关闭按钮 - 悬浮在右上角
-                    if (isRealPhone)
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: IconButton(
-                          icon: const Icon(Icons.close, color: Colors.white70),
-                          onPressed: () => Navigator.of(context).pop(),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              
-              // 操作按钮区域 - 仅在非手机设备显示
-              if (!isRealPhone) ...[
-                const Divider(color: Colors.white24),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (_showEpisodesView) ...[
-                      TextButton(
-                        onPressed: _backToAnimeSelection,
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white70,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        ),
-                        child: const Text('返回动画选择'),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    if (_showEpisodesView && _currentEpisodes.isNotEmpty) ...[
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.2),
-                                width: 0.5,
-                              ),
-                            ),
-                            child: TextButton(
-                              onPressed: _completeSelection,
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              ),
-                              child: Text(_selectedEpisode != null 
-                                ? '确认选择剧集' 
-                                : '使用第一集'),
+                    // 标题栏 - 非手机设备显示
+                    if (!isRealPhone) ...[
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _showEpisodesView ? '选择匹配的剧集' : '手动匹配弹幕',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ),
+                          IconButton(
+                            icon:
+                                const Icon(Icons.close, color: Colors.white70),
+                            onPressed: () => Navigator.of(context).pop(),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                                minWidth: 32, minHeight: 32),
+                          ),
+                        ],
+                      ),
+                      const Divider(color: Colors.white24),
+                      const SizedBox(height: 8),
+                    ],
+
+                    // 内容区域
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          // 主要内容
+                          _buildContentArea(),
+
+                          // 手机设备的关闭按钮 - 悬浮在右上角
+                          if (isRealPhone)
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: IconButton(
+                                icon: const Icon(Icons.close,
+                                    color: Colors.white70),
+                                onPressed: () => Navigator.of(context).pop(),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                    minWidth: 32, minHeight: 32),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    // 操作按钮区域 - 仅在非手机设备显示
+                    if (!isRealPhone) ...[
+                      const Divider(color: Colors.white24),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (_showEpisodesView) ...[
+                            TextButton(
+                              onPressed: _backToAnimeSelection,
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white70,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                              ),
+                              child: const Text('返回动画选择'),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                          if (_showEpisodesView &&
+                              _currentEpisodes.isNotEmpty) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: BackdropFilter(
+                                filter:
+                                    ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    // 使用最新一集
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.2),
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                      child: TextButton(
+                                        onPressed: () {
+                                          if (_currentEpisodes.isNotEmpty) {
+                                            setState(() {
+                                              _selectedEpisode =
+                                                  _currentEpisodes.last;
+                                            });
+                                            _completeSelection();
+                                          }
+                                        },
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 8),
+                                        ),
+                                        child: const Text('使用最新一集'),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // 确认选择剧集 / 使用第一集
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.2),
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                      child: TextButton(
+                                        onPressed: _completeSelection,
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 8),
+                                        ),
+                                        child: Text(_selectedEpisode != null
+                                            ? '确认选择剧集'
+                                            : '使用第一集'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ],
                 ),
-              ],
-            ],
-          ),
-        ),
+              ),
             ),
           ),
         ),
