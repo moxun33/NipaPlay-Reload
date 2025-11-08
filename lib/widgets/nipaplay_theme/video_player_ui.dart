@@ -369,9 +369,10 @@ class _VideoPlayerUIState extends State<VideoPlayerUI> {
           await ManualDanmakuMatcher.instance.showManualMatchDialog(
         context,
         // 可以尝试从_videoPlayerStateInstance获取视频标题作为初始搜索文本
-        initialVideoTitle: Uri.decodeComponent(
-            _videoPlayerStateInstance?.currentVideoPath?.replaceAll('/', '.') ??
-                ''),
+        initialVideoTitle: _videoPlayerStateInstance?.currentVideoPath
+            ?.split('//')
+            .last
+            .replaceAll('/', '.'),
       );
       if (result != null) {
         debugPrint("手动匹配弹幕成功，获取到匹配结果");
@@ -393,8 +394,8 @@ class _VideoPlayerUIState extends State<VideoPlayerUI> {
       if (mounted) {
         BlurDialog.show<void>(
           context: context,
-          title: '功能不可用',
-          content: '手动匹配弹幕功能暂时不可用，请稍后再试。',
+          title: '错误',
+          content: '手动匹配弹幕功能暂时不可用，请稍后再试。$e',
           actions: [
             TextButton(
               child: const Text('确定'),
