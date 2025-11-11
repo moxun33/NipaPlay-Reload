@@ -325,3 +325,7 @@
 
 - https://www.pixiv.net/artworks/130349456 （作者MCDFsteve）
 
+## 鸣谢
+
+- EmoSakura
+

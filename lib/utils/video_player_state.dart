@@ -1907,9 +1907,8 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
         _uiUpdateTicker = null;
       }
 
-      // 清除字幕设置（使用空字符串表示清除外部字幕）
-      player.setMedia("", MediaType.subtitle);
-      player.activeSubtitleTracks = [];
+      // 清除字幕设置（同时更新SubtitleManager状态）
+      _subtitleManager.clearExternalSubtitle();
 
       // 先停止播放
       if (player.state != PlaybackState.stopped) {
@@ -2218,6 +2217,7 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
   }
 
   void _clearPreviousVideoState() {
+    _subtitleManager.clearExternalSubtitle(notifyListenersToo: false);
     _currentVideoPath = null;
     _currentActualPlayUrl = null; // 清除实际播放URL
     _danmakuOverlayKey = 'idle'; // 重置弹幕覆盖层key
@@ -2250,6 +2250,7 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
   }
 
   void _resetVideoState() {
+    _subtitleManager.clearExternalSubtitle(notifyListenersToo: false);
     _position = Duration.zero;
     _progress = 0.0;
     _duration = Duration.zero;
