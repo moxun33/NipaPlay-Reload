@@ -42,7 +42,7 @@ class _DanmakuTracksMenuState extends State<DanmakuTracksMenu> {
     try {
       final webBSearchServerService = WebBSearchServerService();
       await webBSearchServerService.startServer();
-      
+
       final url = Uri.parse('http://localhost:34568');
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
