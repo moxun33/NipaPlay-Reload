@@ -1026,11 +1026,15 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
     // 检查是否是流媒体（jellyfin://协议、emby://协议、alist://协议）
     bool isJellyfinStream = videoPath.startsWith('jellyfin://');
     bool isEmbyStream = videoPath.startsWith('emby://');
-    bool isAlistStream = videoPath.startsWith('alist://') || videoPath.startsWith('alists://');
+    bool isAlistStream =
+        videoPath.startsWith('alist://') || videoPath.startsWith('alists://');
 
     // 对于本地文件才检查存在性，网络URL和流媒体默认认为"存在"
-    bool fileExists =
-        isNetworkUrl || isJellyfinStream || isEmbyStream || isAlistStream || kIsWeb;
+    bool fileExists = isNetworkUrl ||
+        isJellyfinStream ||
+        isEmbyStream ||
+        isAlistStream ||
+        kIsWeb;
 
     // 为网络URL添加特定日志
     if (isNetworkUrl) {
@@ -1054,7 +1058,11 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
       notifyListeners();
     }
 
-    if (!kIsWeb && !isNetworkUrl && !isJellyfinStream && !isEmbyStream && !isAlistStream) {
+    if (!kIsWeb &&
+        !isNetworkUrl &&
+        !isJellyfinStream &&
+        !isEmbyStream &&
+        !isAlistStream) {
       // 使用FilePickerService处理文件路径问题
       if (Platform.isIOS) {
         final filePickerService = FilePickerService();
@@ -1121,7 +1129,8 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
             videoPath, e is Exception ? e : Exception(e.toString()));
         return; // 避免继续处理
       }
-    } else if ((isJellyfinStream || isEmbyStream || isAlistStream) && actualPlayUrl != null) {
+    } else if ((isJellyfinStream || isEmbyStream || isAlistStream) &&
+        actualPlayUrl != null) {
       debugPrint('VideoPlayerState: 准备流媒体URL: $actualPlayUrl');
       // 对流媒体测试实际播放URL的连接
       try {
@@ -1200,8 +1209,10 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
       player.prepare();
 
       // 针对流媒体，给予更长的初始化时间
-      final bool isStreaming =
-          videoPath.contains('jellyfin://') || videoPath.contains('emby://') || videoPath.contains('alist://') || videoPath.contains('alists://');
+      final bool isStreaming = videoPath.contains('jellyfin://') ||
+          videoPath.contains('emby://') ||
+          videoPath.contains('alist://') ||
+          videoPath.contains('alists://');
       final int initializationTimeout =
           isStreaming ? 30000 : 15000; // 流媒体: 30秒, 本地文件: 15秒
 
@@ -2094,7 +2105,8 @@ class VideoPlayerState extends ChangeNotifier implements WindowListener {
         if (_context != null && _context!.mounted) {
           final currentContext = _context!;
           Future.microtask(() {
-            if (_context != null && _context!.mounted &&
+            if (_context != null &&
+                _context!.mounted &&
                 identical(currentContext, _context)) {
               Navigator.of(currentContext).maybePop();
             }
