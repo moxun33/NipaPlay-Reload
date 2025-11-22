@@ -12,11 +12,13 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:nipaplay/services/web_bsearch_server_service.dart';
 
 class DanmakuTracksMenu extends StatefulWidget {
-  final VoidCallback onClose;
+ final VoidCallback onClose;
+  final ValueChanged<bool>? onHoverChanged;
 
   const DanmakuTracksMenu({
     super.key,
     required this.onClose,
+    this.onHoverChanged,
   });
 
   @override
@@ -381,6 +383,7 @@ class _DanmakuTracksMenuState extends State<DanmakuTracksMenu> {
         return BaseSettingsMenu(
           title: '弹幕轨道',
           onClose: widget.onClose,
+          onHoverChanged: widget.onHoverChanged,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
